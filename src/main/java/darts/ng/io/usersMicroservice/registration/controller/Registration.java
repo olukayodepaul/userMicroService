@@ -19,7 +19,7 @@ public class Registration {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegRequest request){
+    public ResponseEntity<?> register(@RequestBody RegRequest request) {
         return registration.registerUser(request);
     }
 
