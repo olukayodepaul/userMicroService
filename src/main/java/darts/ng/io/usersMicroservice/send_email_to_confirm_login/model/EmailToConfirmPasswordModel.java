@@ -18,7 +18,7 @@ public class EmailToConfirmPasswordModel {
 
     private String email;
     private UUID userid;
-    private String confirmtoken;
-    private String confirmcode;
-    private LocalDateTime confirmtokenexpire;
+    private String resetcode;
+    private String resetlink;
+    private LocalDateTime resetcodeexpiry;
 }

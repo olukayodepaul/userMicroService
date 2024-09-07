@@ -4,8 +4,6 @@ package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model;
 import lombok.*;
 
 
-
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,6 +13,7 @@ public class ConfirmRegRes {
     private boolean status;
     private String email;
     private String userId;
+    private String message;
     private confirmation access;
 
 

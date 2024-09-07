@@ -37,6 +37,10 @@ public class UUIDManager {
         return LocalDateTime.now().plus(day, ChronoUnit.DAYS);
     }
 
+    public LocalDateTime expiryTime(int minute) {
+        return LocalDateTime.now().plus(minute, ChronoUnit.MINUTES);
+    }
+
     public Integer SixRandomDigitNumberGenerator() {
         Random random = new Random();
         return random.nextInt(900000) + 100000;

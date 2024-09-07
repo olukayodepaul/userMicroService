@@ -71,6 +71,7 @@ public class ConfirmRegImpl {
                 true,
                 response.getEmail(),
                 response.getUserid().toString(),
+                "Confirmation Code sent to the email "+request.getEmail()+" provided",
                 new ConfirmRegRes.confirmation(
                         accCode,
                         uid
