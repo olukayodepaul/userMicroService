@@ -85,6 +85,7 @@ public class RegisConfirmImpl {
             response.get().setConfirmtokenexpire(null);
             response.get().setConfirmcode(null);
             response.get().setConfirmtoken(null);
+            response.get().setStatus(true);
             regisConfirmRepo.save(response.get());
 
             return new ResponseEntity<>(

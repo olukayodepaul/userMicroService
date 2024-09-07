@@ -1,27 +1,27 @@
-package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model;
-
+package darts.ng.io.usersMicroservice.login.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
+
 
 @Data
 @Entity
 @Getter
 @Table(name = "users")
-public class ConfirmRegModel {
+public class LoginModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(unique = true)
     private String email;
+
     private UUID userid;
-    private String confirmtoken;
-    private String confirmcode;
-    private LocalDateTime confirmtokenexpire;
+    private String password;
+    private boolean status;
 
 }

@@ -14,13 +14,13 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 @Service
-public class ConfirmRegService {
+public class ConfirmRegImpl {
 
     private final ConfirmRegRepo confirmRegRepo;
     private final EmailValidator emailValidator;
     private final UUIDManager uuidManager;
 
-    public ConfirmRegService(ConfirmRegRepo confirmRegRepo, EmailValidator emailValidator, UUIDManager uuidManager) {
+    public ConfirmRegImpl(ConfirmRegRepo confirmRegRepo, EmailValidator emailValidator, UUIDManager uuidManager) {
         this.confirmRegRepo = confirmRegRepo;
         this.emailValidator = emailValidator;
         this.uuidManager = uuidManager;
@@ -28,14 +28,7 @@ public class ConfirmRegService {
 
     public ResponseEntity<?> confirmReg(ConfirmRegReq request) {
 
-        if (request == null) {
-            throw new CustomException(
-                    new RegErrorHandler(false, "Invalid request data provisioning"),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        if (request.getEmail() == null || request.getUserId() == null) {
+        if (request == null || request.getEmail() == null || request.getUserId() == null) {
             throw new CustomException(
                     new RegErrorHandler(false, "Invalid request data provisioning"),
                     HttpStatus.BAD_REQUEST

@@ -2,7 +2,7 @@ package darts.ng.io.usersMicroservice.registration.service;
 
 import darts.ng.io.usersMicroservice.util.*;
 import darts.ng.io.usersMicroservice.registration.model.RegRequest;
-import darts.ng.io.usersMicroservice.registration.model.RegistrationDao;
+import darts.ng.io.usersMicroservice.registration.model.RegModel;
 import darts.ng.io.usersMicroservice.registration.model.ResponseHandler;
 import darts.ng.io.usersMicroservice.registration.repository.RegRepo;
 import org.springframework.http.HttpStatus;
@@ -61,11 +61,11 @@ public class RegistrationImpl {
             );
         }
 
-        RegistrationDao reg = new RegistrationDao();
+        RegModel reg = new RegModel();
         reg.setEmail(request.getUser().getEmail());
-        reg.setPassword_hash(request.getUser().getPasswordHash());
+        reg.setPassword(request.getUser().getPasswordHash());
         reg.setUserid(uuidManager.generateUUID(request.getUser().getEmail()));
-        RegistrationDao result = regRepo.save(reg);
+        RegModel result = regRepo.save(reg);
 
         //send email notification through a notification manager
         //add bcrypt to the password
