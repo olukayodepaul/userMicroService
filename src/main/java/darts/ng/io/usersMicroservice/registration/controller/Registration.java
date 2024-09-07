@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.registration.controller;
 
-import darts.ng.io.usersMicroservice.registration.data.RegRequest;
+import darts.ng.io.usersMicroservice.registration.model.RegRequest;
 import darts.ng.io.usersMicroservice.registration.service.RegistrationImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

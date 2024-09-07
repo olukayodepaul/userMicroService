@@ -1,4 +1,4 @@
-package darts.ng.io.usersMicroservice.registration.data;
+package darts.ng.io.usersMicroservice.registration.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

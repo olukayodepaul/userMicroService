@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.registration.repository;
 
-import darts.ng.io.usersMicroservice.registration.data.RegistrationDao;
+import darts.ng.io.usersMicroservice.registration.model.RegistrationDao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

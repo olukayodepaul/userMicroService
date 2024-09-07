@@ -1,10 +1,12 @@
-package darts.ng.io.usersMicroservice.user_registration_email_confirm.service;
+package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.service;
 
-import darts.ng.io.usersMicroservice.user_registration_email_confirm.data.ConfirmRegModel;
-import darts.ng.io.usersMicroservice.user_registration_email_confirm.data.ConfirmRegReq;
-import darts.ng.io.usersMicroservice.user_registration_email_confirm.data.ConfirmRegRes;
-import darts.ng.io.usersMicroservice.user_registration_email_confirm.repository.ConfirmRegRepo;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model.ConfirmRegModel;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model.ConfirmRegReq;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model.ConfirmRegRes;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.repository.ConfirmRegRepo;
+import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;
+import darts.ng.io.usersMicroservice.util.RegErrorHandler;
 import darts.ng.io.usersMicroservice.util.UUIDManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,26 +29,41 @@ public class ConfirmRegService {
     public ResponseEntity<?> confirmReg(ConfirmRegReq request) {
 
         if (request == null) {
-            throw new IllegalArgumentException("Request cannot be null");
+            throw new CustomException(
+                    new RegErrorHandler(false, "Invalid request data provisioning"),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         if (request.getEmail() == null || request.getUserId() == null) {
-            throw new IllegalArgumentException("Invalid request data");
+            throw new CustomException(
+                    new RegErrorHandler(false, "Invalid request data provisioning"),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         if (!emailValidator.isValid(request.getEmail())) {
-            throw new IllegalArgumentException("Invalid email format");
+            throw new CustomException(
+                    new RegErrorHandler(false, "Invalid email provisioning"),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         if (!uuidManager.isValidUUID(request.getUserId())) {
-            throw new IllegalArgumentException("Invalid User Id");
+            throw new CustomException(
+                    new RegErrorHandler(false, "Invalid user ID provisioning"),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         UUID userId = UUID.fromString(request.getUserId());
         ConfirmRegModel response = confirmRegRepo.findByEmailAndUserid((request.getEmail()), userId);
 
         if (response == null) {
-            throw new IllegalArgumentException("Invalid UserId and Email");
+            throw new CustomException(
+                    new RegErrorHandler(false, "Invalid email provisioning"),
+                    HttpStatus.BAD_REQUEST
+            );
         }
 
         String uid = uuidManager.generateVerificationString();
@@ -57,17 +74,15 @@ public class ConfirmRegService {
         response.setConfirmtokenexpire(uuidManager.expiryDate(7));
         confirmRegRepo.save(response);
 
-        ConfirmRegRes confirm = new ConfirmRegRes (
+        return new ResponseEntity<>(new ConfirmRegRes (
                 true,
                 response.getEmail(),
                 response.getUserid().toString(),
                 new ConfirmRegRes.confirmation(
-                    accCode,
-                    uid
+                        accCode,
+                        uid
                 )
-        );
-
-        return new ResponseEntity<>(confirm, HttpStatus.CREATED);
+        ), HttpStatus.CREATED);
     }
 }
 

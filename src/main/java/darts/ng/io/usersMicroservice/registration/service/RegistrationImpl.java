@@ -1,16 +1,16 @@
 package darts.ng.io.usersMicroservice.registration.service;
 
 import darts.ng.io.usersMicroservice.util.*;
-import darts.ng.io.usersMicroservice.registration.data.RegRequest;
-import darts.ng.io.usersMicroservice.registration.data.RegistrationDao;
-import darts.ng.io.usersMicroservice.registration.data.ResponseHandler;
+import darts.ng.io.usersMicroservice.registration.model.RegRequest;
+import darts.ng.io.usersMicroservice.registration.model.RegistrationDao;
+import darts.ng.io.usersMicroservice.registration.model.ResponseHandler;
 import darts.ng.io.usersMicroservice.registration.repository.RegRepo;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import darts.ng.io.usersMicroservice.registration.data.ResponseHandler.UserProfiles;
-import darts.ng.io.usersMicroservice.registration.data.ResponseHandler.UserProfiles.UserProfile;
-import darts.ng.io.usersMicroservice.registration.data.ResponseHandler.UserProfiles.Users;
+import darts.ng.io.usersMicroservice.registration.model.ResponseHandler.UserProfiles;
+import darts.ng.io.usersMicroservice.registration.model.ResponseHandler.UserProfiles.UserProfile;
+import darts.ng.io.usersMicroservice.registration.model.ResponseHandler.UserProfiles.Users;
 
 
 @Service
