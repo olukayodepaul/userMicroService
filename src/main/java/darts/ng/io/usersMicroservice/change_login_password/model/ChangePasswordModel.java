@@ -1,9 +1,10 @@
-package darts.ng.io.usersMicroservice.login.model;
+package darts.ng.io.usersMicroservice.change_login_password.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 
@@ -11,15 +12,16 @@ import java.util.UUID;
 @Entity
 @Getter
 @Table(name = "users")
-public class LoginModel {
+public class ChangePasswordModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(unique = true)
     private String email;
-    private UUID userid;
     private String password;
-    private boolean status;
+    private String resetcode;
+    private String resetlink;
+    private LocalDateTime resetcodeexpiry;
+
 }

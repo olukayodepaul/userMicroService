@@ -57,7 +57,7 @@ public class EmailToConfirmPasswordImpl {
             String resetLink = uuidManager.generateVerificationString();
 
             isActiveResponse.setResetcode(resetCode);
-            isActiveResponse.setResetcodeexpiry(uuidManager.expiryTime(10));
+            isActiveResponse.setResetcodeexpiry(uuidManager.expiryTime(1));
             isActiveResponse.setResetlink(resetLink);
 
             repository.save(isActiveResponse);

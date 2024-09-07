@@ -23,4 +23,5 @@ public class EmailToConfirmPasswordRes {
         private String code;
         private String link;
     }
+
 }
