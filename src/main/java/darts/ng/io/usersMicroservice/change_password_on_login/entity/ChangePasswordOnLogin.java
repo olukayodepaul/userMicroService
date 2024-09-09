@@ -19,4 +19,5 @@ public class ChangePasswordOnLogin {
     private String email;
     private String password;
     private boolean status;
+
 }

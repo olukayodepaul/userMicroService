@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.change_login_password.controller;
 
-import darts.ng.io.usersMicroservice.change_login_password.model.ChangePasswordReq;
+import darts.ng.io.usersMicroservice.change_login_password.entity.ChangePasswordReq;
 import darts.ng.io.usersMicroservice.change_login_password.service.ChangePasswordImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

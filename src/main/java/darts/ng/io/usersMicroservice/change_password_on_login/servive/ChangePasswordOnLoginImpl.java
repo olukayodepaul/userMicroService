@@ -2,7 +2,9 @@ package darts.ng.io.usersMicroservice.change_password_on_login.servive;
 
 import darts.ng.io.usersMicroservice.change_password_on_login.entity.ChangePasswordOnLogin;
 import darts.ng.io.usersMicroservice.change_password_on_login.entity.ChangePasswordOnLoginReq;
+import darts.ng.io.usersMicroservice.change_password_on_login.entity.ChangePasswordOnLoginRes;
 import darts.ng.io.usersMicroservice.change_password_on_login.repository.ChangePasswordOnLoginDao;
+import darts.ng.io.usersMicroservice.login.entity.LoginRes;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;
 import darts.ng.io.usersMicroservice.util.RegErrorHandler;
@@ -55,21 +57,36 @@ public class ChangePasswordOnLoginImpl {
 
         if (response.isPresent()) {
 
-            ChangePasswordOnLogin isActiveResponse = response.get();
+            ChangePasswordOnLogin  active = response.get();
 
-            if (!isActiveResponse.getPassword().equals(request.getOldPassword())) {
+            //add bcrypt here to conform the password
+            if (!active.getPassword().equals(request.getOldPassword())) {
                 throw new CustomException(
                         new RegErrorHandler(false, "Invalid password. Please try again."),
                         HttpStatus.UNAUTHORIZED
                 );
             }
 
+            if (!active.isStatus()) {
+                throw new CustomException(
+                        new RegErrorHandler(false, "Your mail is yet to be confirmed."),
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            //save in the database
+            //encrypted password here
+            active.setPassword(request.getNewPassword());
+            databaseDao.save(active);
+
+            return new ResponseEntity<>(new ChangePasswordOnLoginRes(
+                    true, "Successful"
+            ), HttpStatus.OK);
         }
 
         throw new CustomException(
                 new RegErrorHandler(false, "Invalid email provisioning"),
                 HttpStatus.BAD_REQUEST
         );
-
     }
 }

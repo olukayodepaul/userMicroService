@@ -1,4 +1,4 @@
-package darts.ng.io.usersMicroservice.change_login_password.model;
+package darts.ng.io.usersMicroservice.change_login_password.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

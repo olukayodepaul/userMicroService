@@ -1,8 +1,8 @@
 package darts.ng.io.usersMicroservice.change_login_password.service;
 
-import darts.ng.io.usersMicroservice.change_login_password.model.ChangePasswordModel;
-import darts.ng.io.usersMicroservice.change_login_password.model.ChangePasswordReq;
-import darts.ng.io.usersMicroservice.change_login_password.model.ChangePasswordRes;
+import darts.ng.io.usersMicroservice.change_login_password.entity.ChangePasswordModel;
+import darts.ng.io.usersMicroservice.change_login_password.entity.ChangePasswordReq;
+import darts.ng.io.usersMicroservice.change_login_password.entity.ChangePasswordRes;
 import darts.ng.io.usersMicroservice.change_login_password.repository.ChangePasswordRepo;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;
