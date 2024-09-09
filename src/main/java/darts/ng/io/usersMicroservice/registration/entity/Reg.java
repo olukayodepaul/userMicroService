@@ -24,5 +24,6 @@ public class Reg implements Serializable {
 
     private UUID userid;
     private String password;
+    private String username;
 
 }

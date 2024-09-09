@@ -1,34 +1,33 @@
 package darts.ng.io.usersMicroservice.registration.entity;
 
-
 import lombok.*;
 
+import java.util.UUID;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegRequest {
-    private User user;
-    private Profile profile;
+public class RegistrationResHandler {
+    private boolean status;
+    private String message;
+    private Profile user;
 
     @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class User {
-        private String email;
-        private String passwordHash;
-    }
-
-    @Getter
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Profile {
+        private UUID userId;
+        private String email;
         private String firstName;
         private String lastName;
-        private String phoneNumber;
-        private String address;
+        private String gender;
         private String dateOfBirth;
-        private String bio;
+        private String token;
         private String profilePictureUrl;
-    }
+    };
+
 }
+
+

@@ -66,6 +66,7 @@ public class LoginImpl {
                 );
             }
 
+            //add redis to increase the speed of the application
             LoginRes rst = new LoginRes(
                     true,
                     "Successfully logged in.",

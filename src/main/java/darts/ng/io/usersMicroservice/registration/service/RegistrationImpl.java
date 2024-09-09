@@ -1,17 +1,13 @@
 package darts.ng.io.usersMicroservice.registration.service;
 
 import darts.ng.io.usersMicroservice.util.*;
-import darts.ng.io.usersMicroservice.registration.entity.RegRequest;
+import darts.ng.io.usersMicroservice.registration.entity.RegRequestHandler;
 import darts.ng.io.usersMicroservice.registration.entity.Reg;
-import darts.ng.io.usersMicroservice.registration.entity.ResponseHandler;
+import darts.ng.io.usersMicroservice.registration.entity.RegistrationResHandler;
 import darts.ng.io.usersMicroservice.registration.repository.RegRepo;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import darts.ng.io.usersMicroservice.registration.entity.ResponseHandler.UserProfiles;
-import darts.ng.io.usersMicroservice.registration.entity.ResponseHandler.UserProfiles.UserProfile;
-import darts.ng.io.usersMicroservice.registration.entity.ResponseHandler.UserProfiles.Users;
 
 
 @Service
@@ -32,7 +28,7 @@ public class RegistrationImpl {
         this.emailValidator = emailValidator;
     }
 
-    public ResponseEntity<?> registerUser(RegRequest request) {
+    public ResponseEntity<?> registerUser(RegRequestHandler request) {
 
         if (request == null) {
             throw new CustomException(
@@ -66,36 +62,31 @@ public class RegistrationImpl {
         reg.setEmail(request.getUser().getEmail());
         reg.setPassword(request.getUser().getPasswordHash());
         reg.setUserid(uuidManager.generateUUID(request.getUser().getEmail()));
+        reg.setUsername(request.getUser().getUsername());
         Reg result = regRepo.save(reg);
 
-        //send email notification through a notification manager
+        //Incoming data validation before passing to business logic
         //add bcrypt to the password
         //sign the token
         //send profile data to gRPC failed to respond, then send through kafka.
-        //Incoming data validation before passing to business logic
+
 
         //request.getProfile();
-
-        ResponseHandler response = new ResponseHandler(
+        RegistrationResHandler response = new RegistrationResHandler(
                 true,
                 "User successfully created",
-                new UserProfiles(
-                        new Users(
-                                request.getUser().getEmail(),
-                                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                                result.getUserid()
-                        ),
-                        new UserProfile(
-                                request.getProfile().getFirstName(),
-                                request.getProfile().getLastName(),
-                                request.getProfile().getPhoneNumber(),
-                                request.getProfile().getAddress(),
-                                request.getProfile().getDateOfBirth(),
-                                request.getProfile().getBio(),
-                                request.getProfile().getProfilePictureUrl()
-                        )
+                new RegistrationResHandler.Profile(
+                        result.getUserid(),
+                        request.getUser().getEmail(),
+                        request.getProfile().getFirstName(),
+                        request.getProfile().getLastName(),
+                        request.getProfile().getGender(),
+                        request.getProfile().getDateOfBirth(),
+                        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        request.getProfile().getProfilePictureUrl()
                 )
         );
+
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

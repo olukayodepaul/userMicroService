@@ -1,12 +1,9 @@
 package darts.ng.io.usersMicroservice.registration.controller;
 
-import darts.ng.io.usersMicroservice.registration.entity.RegRequest;
+import darts.ng.io.usersMicroservice.registration.entity.RegRequestHandler;
 import darts.ng.io.usersMicroservice.registration.service.RegistrationImpl;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,7 +16,7 @@ public class Registration {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegRequest request) {
+    public ResponseEntity<?> register(@RequestBody RegRequestHandler request) {
         return registration.registerUser(request);
     }
 
