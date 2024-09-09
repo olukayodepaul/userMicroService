@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.send_email_to_confirm_login.controller;
 
-import darts.ng.io.usersMicroservice.send_email_to_confirm_login.model.EmailToConfirmPasswordReq;
+import darts.ng.io.usersMicroservice.send_email_to_confirm_login.entity.EmailToConfirmPasswordReq;
 import darts.ng.io.usersMicroservice.send_email_to_confirm_login.service.EmailToConfirmPasswordImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

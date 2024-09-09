@@ -1,10 +1,10 @@
 package darts.ng.io.usersMicroservice.send_email_to_confirm_login.service;
 
 
-import darts.ng.io.usersMicroservice.send_email_to_confirm_login.model.EmailToConfirmPasswordModel;
-import darts.ng.io.usersMicroservice.send_email_to_confirm_login.model.EmailToConfirmPasswordReq;
-import darts.ng.io.usersMicroservice.send_email_to_confirm_login.model.EmailToConfirmPasswordRes;
-import darts.ng.io.usersMicroservice.send_email_to_confirm_login.repository.EmailToConfirmPasswordRepo;
+import darts.ng.io.usersMicroservice.send_email_to_confirm_login.entity.Database;
+import darts.ng.io.usersMicroservice.send_email_to_confirm_login.entity.EmailToConfirmPasswordReq;
+import darts.ng.io.usersMicroservice.send_email_to_confirm_login.entity.EmailToConfirmPasswordRes;
+import darts.ng.io.usersMicroservice.send_email_to_confirm_login.repository.EmailToConfirmPasswordDAO;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;
 import darts.ng.io.usersMicroservice.util.RegErrorHandler;
@@ -18,12 +18,12 @@ import java.util.Optional;
 @Service
 public class EmailToConfirmPasswordImpl {
 
-    private final EmailToConfirmPasswordRepo repository;
+    private final EmailToConfirmPasswordDAO repository;
     private final EmailValidator emailValidator;
     private final UUIDManager uuidManager;
 
     public EmailToConfirmPasswordImpl(
-            EmailToConfirmPasswordRepo repository,
+            EmailToConfirmPasswordDAO repository,
             EmailValidator emailValidator,
             UUIDManager uuidManager
     ) {
@@ -48,11 +48,11 @@ public class EmailToConfirmPasswordImpl {
             );
         }
 
-        Optional<EmailToConfirmPasswordModel> response = repository.findByEmail(request.getEmail());
+        Optional<Database> response = repository.findByEmail(request.getEmail());
 
         if (response.isPresent()) {
 
-            EmailToConfirmPasswordModel isActiveResponse = response.get();
+            Database isActiveResponse = response.get();
             String resetCode = uuidManager.SixRandomDigitNumberGenerator().toString();
             String resetLink = uuidManager.generateVerificationString();
 
@@ -69,6 +69,8 @@ public class EmailToConfirmPasswordImpl {
                     "Reset Code sent to the email "+request.getEmail()+" provided",
                     new EmailToConfirmPasswordRes.confirmation(resetCode, resetLink)
             ), HttpStatus.CREATED);
+
+
         }
 
         throw new CustomException(

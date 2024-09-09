@@ -10,7 +10,6 @@ import darts.ng.io.usersMicroservice.util.RegErrorHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -21,7 +20,10 @@ public class ChangePasswordImpl {
     private final ChangePasswordRepo repository;
     private final EmailValidator emailValidator;
 
-    public ChangePasswordImpl(ChangePasswordRepo repository, EmailValidator emailValidator) {
+    public ChangePasswordImpl(
+            ChangePasswordRepo repository,
+            EmailValidator emailValidator
+    ) {
         this.repository = repository;
         this.emailValidator = emailValidator;
     }
@@ -30,14 +32,14 @@ public class ChangePasswordImpl {
 
         if (request == null || request.getEmail() == null || request.getNewPassword() == null) {
             throw new CustomException(
-                    new RegErrorHandler(false, "Invalid request data provisioning"),
+                    new RegErrorHandler(false, "Missing required fields."),
                     HttpStatus.BAD_REQUEST
             );
         }
 
         if (!emailValidator.isValid(request.getEmail())) {
             throw new CustomException(
-                    new RegErrorHandler(false, "Invalid email provisioning"),
+                    new RegErrorHandler(false, "Invalid email format."),
                     HttpStatus.BAD_REQUEST
             );
         }
@@ -56,44 +58,46 @@ public class ChangePasswordImpl {
                     || isActiveResponse.getResetcode().isBlank()
             ) {
                 throw new CustomException(
-                        new RegErrorHandler(false, "Verification code no longer valid."),
-                        HttpStatus.UNAUTHORIZED
+                        new RegErrorHandler(false, "Reset link or code is invalid."),
+                        HttpStatus.FORBIDDEN
                 );
             }
 
-            //check if the reset code has expired
+            // Check if the reset code has expired
             if (isActiveResponse.getResetcodeexpiry() == null || isActiveResponse.getResetcodeexpiry().isBefore(LocalDateTime.now())) {
                 throw new CustomException(
-                        new RegErrorHandler(false, "Verification code has expired."),
-                        HttpStatus.UNAUTHORIZED
+                        new RegErrorHandler(false, "Reset code has expired."),
+                        HttpStatus.GONE
                 );
             }
 
-            //check the set code if matches what is in the db
+            // Check if the reset code matches
             if (!request.getAccessCode().equalsIgnoreCase(isActiveResponse.getResetlink()) &&
                     !request.getAccessCode().equalsIgnoreCase(isActiveResponse.getResetcode())) {
                 return new ResponseEntity<>(
-                        new RegErrorHandler(false, "Invalid reset code. Please try again."),
+                        new RegErrorHandler(false, "Invalid reset code."),
                         HttpStatus.BAD_REQUEST
                 );
             }
 
-
             isActiveResponse.setResetcode(null);
             isActiveResponse.setResetcodeexpiry(null);
             isActiveResponse.setResetlink(null);
-            isActiveResponse.setPassword(request.getNewPassword()); //enter the bcrypt password here
+            isActiveResponse.setPassword(request.getNewPassword()); // Enter the bcrypt password here
             repository.save(isActiveResponse);
 
             return new ResponseEntity<>(new ChangePasswordRes(
-                   true,
-                    "Password Successful Updated"
-            ), HttpStatus.CREATED);
+                    true,
+                    "Password updated successfully."
+            ), HttpStatus.OK);
         }
 
         throw new CustomException(
-                new RegErrorHandler(false, "Invalid email provisioning"),
-                HttpStatus.BAD_REQUEST
+                new RegErrorHandler(false, "Email not found."),
+                HttpStatus.NOT_FOUND
         );
     }
+
+
+
 }

@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneralException(Exception ex) {
         return new ResponseEntity<>(
-                new RegErrorHandler(false, "An error occurred: Required request data is missing"),
+                new RegErrorHandler(false, "An error occurred: Required request data is missing "+ex.getMessage()),
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }

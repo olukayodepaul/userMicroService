@@ -1,7 +1,7 @@
 package darts.ng.io.usersMicroservice.registration_confirmation.service;
 
-import darts.ng.io.usersMicroservice.registration_confirmation.model.RegisConfirmModel;
-import darts.ng.io.usersMicroservice.registration_confirmation.model.RegisConfirmReq;
+import darts.ng.io.usersMicroservice.registration_confirmation.entity.RegisConfirmModel;
+import darts.ng.io.usersMicroservice.registration_confirmation.entity.RegisConfirmReq;
 import darts.ng.io.usersMicroservice.registration_confirmation.repository.RegisConfirmRepo;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;

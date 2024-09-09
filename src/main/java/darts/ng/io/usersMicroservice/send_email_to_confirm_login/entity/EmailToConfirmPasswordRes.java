@@ -1,4 +1,4 @@
-package darts.ng.io.usersMicroservice.send_email_to_confirm_login.model;
+package darts.ng.io.usersMicroservice.send_email_to_confirm_login.entity;
 
 import lombok.*;
 

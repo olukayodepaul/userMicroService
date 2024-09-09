@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.login.controller;
 
-import darts.ng.io.usersMicroservice.login.model.LoginReq;
+import darts.ng.io.usersMicroservice.login.entity.LoginReq;
 import darts.ng.io.usersMicroservice.login.service.LoginImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

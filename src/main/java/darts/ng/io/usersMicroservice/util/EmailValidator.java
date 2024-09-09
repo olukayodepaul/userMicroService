@@ -19,5 +19,4 @@ public class EmailValidator {
         Matcher matcher = emailPattern.matcher(email);
         return matcher.matches();
     }
-
 }

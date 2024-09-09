@@ -1,8 +1,8 @@
 package darts.ng.io.usersMicroservice.login.service;
 
-import darts.ng.io.usersMicroservice.login.model.LoginModel;
-import darts.ng.io.usersMicroservice.login.model.LoginReq;
-import darts.ng.io.usersMicroservice.login.model.LoginRes;
+import darts.ng.io.usersMicroservice.login.entity.LoginModel;
+import darts.ng.io.usersMicroservice.login.entity.LoginReq;
+import darts.ng.io.usersMicroservice.login.entity.LoginRes;
 import darts.ng.io.usersMicroservice.login.repository.LoginRepo;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;
@@ -59,7 +59,7 @@ public class LoginImpl {
                 );
             }
 
-            if (!loginModel.getPassword().equalsIgnoreCase(request.getPassword())) {
+            if (!loginModel.getPassword().equals(request.getPassword())) {
                 throw new CustomException(
                         new RegErrorHandler(false, "Invalid password. Please try again."),
                         HttpStatus.UNAUTHORIZED

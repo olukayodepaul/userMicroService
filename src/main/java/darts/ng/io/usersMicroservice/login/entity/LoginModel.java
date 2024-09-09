@@ -1,4 +1,4 @@
-package darts.ng.io.usersMicroservice.login.model;
+package darts.ng.io.usersMicroservice.login.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

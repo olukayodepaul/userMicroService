@@ -1,8 +1,8 @@
 package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.service;
 
-import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model.ConfirmRegModel;
-import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model.ConfirmRegReq;
-import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.model.ConfirmRegRes;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegModel;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegReq;
+import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegRes;
 import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.repository.ConfirmRegRepo;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;

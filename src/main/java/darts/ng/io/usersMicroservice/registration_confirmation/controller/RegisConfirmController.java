@@ -1,7 +1,7 @@
 package darts.ng.io.usersMicroservice.registration_confirmation.controller;
 
 
-import darts.ng.io.usersMicroservice.registration_confirmation.model.RegisConfirmReq;
+import darts.ng.io.usersMicroservice.registration_confirmation.entity.RegisConfirmReq;
 import darts.ng.io.usersMicroservice.registration_confirmation.service.RegisConfirmImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

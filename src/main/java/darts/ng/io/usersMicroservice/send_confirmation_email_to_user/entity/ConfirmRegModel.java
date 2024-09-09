@@ -1,8 +1,10 @@
-package darts.ng.io.usersMicroservice.send_email_to_confirm_login.model;
+package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity;
+
 
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -10,7 +12,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @Table(name = "users")
-public class EmailToConfirmPasswordModel {
+public class ConfirmRegModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,7 +20,8 @@ public class EmailToConfirmPasswordModel {
 
     private String email;
     private UUID userid;
-    private String resetcode;
-    private String resetlink;
-    private LocalDateTime resetcodeexpiry;
+    private String confirmtoken;
+    private String confirmcode;
+    private LocalDateTime confirmtokenexpire;
+
 }

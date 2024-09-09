@@ -1,4 +1,4 @@
-package darts.ng.io.usersMicroservice.registration.model;
+package darts.ng.io.usersMicroservice.registration.entity;
 
 import lombok.*;
 

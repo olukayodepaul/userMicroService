@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.registration_confirmation.repository;
 
-import darts.ng.io.usersMicroservice.registration_confirmation.model.RegisConfirmModel;
+import darts.ng.io.usersMicroservice.registration_confirmation.entity.RegisConfirmModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;

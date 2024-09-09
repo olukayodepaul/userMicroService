@@ -1,4 +1,4 @@
-package darts.ng.io.usersMicroservice.registration_confirmation.model;
+package darts.ng.io.usersMicroservice.registration_confirmation.entity;
 
 
 import lombok.AllArgsConstructor;
