@@ -7,6 +7,7 @@ import darts.ng.io.usersMicroservice.registration.entity.RegistrationResHandler;
 import darts.ng.io.usersMicroservice.registration.repository.RegRepo;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
@@ -16,6 +17,7 @@ public class RegistrationImpl {
     private final RegRepo regRepo;
     private final UUIDManager uuidManager;
     private final EmailValidator emailValidator;
+    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     public RegistrationImpl(
             RegRepo regRepo,
@@ -60,7 +62,7 @@ public class RegistrationImpl {
 
         Reg reg = new Reg();
         reg.setEmail(request.getUser().getEmail());
-        reg.setPassword(request.getUser().getPasswordHash());
+        reg.setPassword(encoder.encode(request.getUser().getPasswordHash()));
         reg.setUserid(uuidManager.generateUUID(request.getUser().getEmail()));
         reg.setUsername(request.getUser().getUsername());
         Reg result = regRepo.save(reg);

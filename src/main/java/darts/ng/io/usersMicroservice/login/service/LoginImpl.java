@@ -4,25 +4,29 @@ import darts.ng.io.usersMicroservice.login.entity.LoginModel;
 import darts.ng.io.usersMicroservice.login.entity.LoginReq;
 import darts.ng.io.usersMicroservice.login.entity.LoginRes;
 import darts.ng.io.usersMicroservice.login.repository.LoginRepo;
+import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.EmailValidator;
 import darts.ng.io.usersMicroservice.util.RegErrorHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Optional;
 
 @Service
 public class LoginImpl {
-
     private final LoginRepo loginRepo;
     private final EmailValidator emailValidator;
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    private final JwtService jwtService;
 
-    public LoginImpl(LoginRepo loginRepo, EmailValidator emailValidator) {
+    public LoginImpl(LoginRepo loginRepo, EmailValidator emailValidator, JwtService jwtService) {
         this.loginRepo = loginRepo;
         this.emailValidator = emailValidator;
-
+        this.jwtService = jwtService;
     }
 
     public ResponseEntity<?> loginUser(LoginReq request) {
@@ -59,22 +63,27 @@ public class LoginImpl {
                 );
             }
 
-            if (!loginModel.getPassword().equals(request.getPassword())) {
+            System.out.println(loginModel.getPassword());
+            if (!encoder.matches(request.getPassword(), loginModel.getPassword())) {
                 throw new CustomException(
                         new RegErrorHandler(false, "Invalid password. Please try again."),
                         HttpStatus.UNAUTHORIZED
                 );
             }
 
-            //add redis to increase the speed of the application
+            // Generate the JWT token after successful login
+            String jwtToken = jwtService.generateToken(new HashMap<>(), loginModel);
+
+            // Create response with token
             LoginRes rst = new LoginRes(
                     true,
                     "Successfully logged in.",
                     loginModel.getUserid(),
-                    "Ag+lm61ohaVR-G4FRQGMN2fUm-B5vxlo0kdgkp-AglGSk0gl1TU-HXdLwJrKfblY-qydNmJ4PUvAe-ZzuUkvbrC7Ef-vYdk/1ONeiDk-qc3b+xo+jm5P-zaHsVfVnMyZ1-YgE9ZVAUIhMn-R/vqLmMikFDo-xm/mjUoRezC9-d/ldwEBnOn50"
+                    jwtToken  // Include the JWT in the response
             );
 
             return new ResponseEntity<>(rst, HttpStatus.OK);
         }
     }
+
 }

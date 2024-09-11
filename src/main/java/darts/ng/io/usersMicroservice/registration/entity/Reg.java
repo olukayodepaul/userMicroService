@@ -12,7 +12,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @Table(name = "users")
-public class Reg implements Serializable {
+public class Reg {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
