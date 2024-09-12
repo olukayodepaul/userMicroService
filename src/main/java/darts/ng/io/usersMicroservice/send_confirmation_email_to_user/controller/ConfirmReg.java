@@ -21,5 +21,4 @@ public class ConfirmReg {
     public ResponseEntity<?> confirmReg(@RequestBody ConfirmRegReq response, @RequestHeader("Authorization") String authHeader){
         return confirmRegService.confirmReg(response, authHeader);
     }
-
 }
