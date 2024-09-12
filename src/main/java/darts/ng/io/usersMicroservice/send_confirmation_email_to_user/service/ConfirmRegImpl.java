@@ -1,5 +1,6 @@
 package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.service;
 
+import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegModel;
 import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegReq;
 import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegRes;
@@ -19,14 +20,22 @@ public class ConfirmRegImpl {
     private final ConfirmRegRepo confirmRegRepo;
     private final EmailValidator emailValidator;
     private final UUIDManager uuidManager;
+    private final JwtService jwtService;
 
-    public ConfirmRegImpl(ConfirmRegRepo confirmRegRepo, EmailValidator emailValidator, UUIDManager uuidManager) {
+    public ConfirmRegImpl(
+            ConfirmRegRepo confirmRegRepo,
+            EmailValidator emailValidator,
+            UUIDManager uuidManager,
+            JwtService jwtService) {
         this.confirmRegRepo = confirmRegRepo;
         this.emailValidator = emailValidator;
         this.uuidManager = uuidManager;
+        this.jwtService = jwtService;
     }
 
-    public ResponseEntity<?> confirmReg(ConfirmRegReq request) {
+    public ResponseEntity<?> confirmReg(ConfirmRegReq request, String authHeader) {
+
+        System.out.println(jwtService.extractEmail(authHeader.substring(7)));
 
         if (request == null || request.getEmail() == null || request.getUserId() == null) {
             throw new CustomException(

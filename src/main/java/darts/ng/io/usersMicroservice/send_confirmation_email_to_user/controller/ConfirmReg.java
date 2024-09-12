@@ -4,10 +4,7 @@ package darts.ng.io.usersMicroservice.send_confirmation_email_to_user.controller
 import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.entity.ConfirmRegReq;
 import darts.ng.io.usersMicroservice.send_confirmation_email_to_user.service.ConfirmRegImpl;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -20,9 +17,9 @@ public class ConfirmReg {
         this.confirmRegService = confirmRegService;
     }
 
-    @PostMapping("/send-confirmation-email")
-    public ResponseEntity<?> confirmReg(@RequestBody ConfirmRegReq response){
-        return confirmRegService.confirmReg(response);
+    @GetMapping("/send-confirmation-email")
+    public ResponseEntity<?> confirmReg(@RequestBody ConfirmRegReq response, @RequestHeader("Authorization") String authHeader){
+        return confirmRegService.confirmReg(response, authHeader);
     }
 
 }

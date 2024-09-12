@@ -1,5 +1,6 @@
 package darts.ng.io.usersMicroservice.security;
 
+import darts.ng.io.usersMicroservice.login.controller.Login;
 import darts.ng.io.usersMicroservice.login.entity.LoginModel;
 import darts.ng.io.usersMicroservice.util.CustomException;
 import darts.ng.io.usersMicroservice.util.JwtValidationException;
@@ -10,6 +11,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.protocol.types.ArrayOf;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
@@ -58,13 +61,19 @@ public class JwtService {
 
     // Generate token with additional claims
     public String generateToken(Map<String, Object> extraClaims, LoginModel loginModel) {
+
+        extraClaims.put("userId", loginModel.getUserid());
+        extraClaims.put("id", loginModel.getId());
+        extraClaims.put("email", loginModel.getEmail());
+
         return Jwts.builder()
-                .claims(extraClaims)  // Add extra claims
-                .subject(loginModel.getEmail())  // Set the subject as the email
-                .issuedAt(new Date())  // Set the issued at date
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 20))  // Token valid for 20 hours
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)  // Sign the token with the secret key
-                .compact();  // Generate the token
+                .claims(extraClaims)
+                .subject(loginModel.getEmail())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 20))
+                .signWith(getSigningKey())
+                .compact();
+
     }
 
     // Validate token
@@ -79,6 +88,8 @@ public class JwtService {
             );
         }
     }
+
+
 
     // Extract username from token
     public String extractUserName(String token) {
@@ -95,6 +106,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
+
     // Extract all claims from the token
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
@@ -103,6 +115,37 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+    // Method to extract userId from the token
+    public Integer extractUserId(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.get("id", Integer.class);
+    }
+
+    // Method to extract userId from the token
+    public String extractEmail(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.get("email", String.class);
+    }
+
+    public String extractId(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.get("userId", String.class);
+    }
+
+
 
     // Create Authentication from the token
     public Authentication getAuthentication(String token) {
