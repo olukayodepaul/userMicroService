@@ -18,6 +18,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -25,6 +27,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final ApplicationContext context;
+
+    private static final Set<String> OPEN_ENDPOINTS = new HashSet<>();
+
+    static {
+        OPEN_ENDPOINTS.add("/api/auth/login");
+    }
 
     public JwtFilter(JwtService jwtService, ApplicationContext context) {
         this.jwtService = jwtService;
@@ -35,13 +43,34 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
+        String requestURI = request.getRequestURI();
+
+        // Skip authentication for open endpoints
+        if (OPEN_ENDPOINTS.contains(requestURI)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         authHeader = AuthHeaderUtils.cleanAuthorizationHeader(authHeader);
-        log.info("Raw Authorization header: {}", authHeader);
+
+        if (authHeader == null || authHeader.isEmpty()) {
+            // Handle missing or empty Authorization header for non-open endpoints
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"status\":false,\"error\":\"Missing Authorization header\"}");
+            return;
+        }
+
+        if (authHeader == null || authHeader.isEmpty()) {
+            // Handle missing or empty Authorization header
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"status\":false,\"error\":\"Missing Authorization header\"}");
+            return;
+        }
 
         try {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
