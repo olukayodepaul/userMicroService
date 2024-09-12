@@ -2,12 +2,14 @@ package darts.ng.io.usersMicroservice.security;
 
 import darts.ng.io.usersMicroservice.login.entity.LoginModel;
 import darts.ng.io.usersMicroservice.util.CustomException;
+import darts.ng.io.usersMicroservice.util.JwtValidationException;
 import darts.ng.io.usersMicroservice.util.RegErrorHandler;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,6 +27,7 @@ import io.jsonwebtoken.SignatureException;
 
 
 @Service
+@Slf4j
 public class JwtService {
 
     private static final String SECRET_KEY = "PciAAE1MF5lVHhZE3MwvMJHp9bAiiEA8mva2qTF0e+s=";
@@ -69,24 +72,9 @@ public class JwtService {
         try {
             final String username = extractUsername(token);
             return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-        }catch (ExpiredJwtException e) {
-            throw new CustomException(
-                    new RegErrorHandler(false, "Token has expired"),
-                    HttpStatus.BAD_REQUEST
-            );
-        } catch (SignatureException e) {
-            throw new CustomException(
-                    new RegErrorHandler(false, "Invalid JWT signature"),
-                    HttpStatus.BAD_REQUEST
-            );
-        } catch (MalformedJwtException e) {
+        }catch (JwtValidationException ex) {
             throw new CustomException(
                     new RegErrorHandler(false, "Malformed JWT token"),
-                    HttpStatus.BAD_REQUEST
-            );
-        } catch (IllegalArgumentException e) {
-            throw new CustomException(
-                    new RegErrorHandler(false, "JWT claims string is empty"),
                     HttpStatus.BAD_REQUEST
             );
         }

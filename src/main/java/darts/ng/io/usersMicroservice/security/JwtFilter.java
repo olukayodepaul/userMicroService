@@ -1,5 +1,6 @@
 package darts.ng.io.usersMicroservice.security;
 
+import darts.ng.io.usersMicroservice.util.AuthHeaderUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,33 +35,45 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
 
-        log.info("Processing request with Authorization header: {}", authHeader);
+        authHeader = AuthHeaderUtils.cleanAuthorizationHeader(authHeader);
+        log.info("Raw Authorization header: {}", authHeader);
 
-        // Corrected condition to check if authHeader is present and starts with "Bearer "
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);  // Extract the JWT after "Bearer "
-            username = jwtService.extractUserName(token);
-        }
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                // Extract token (remove Bearer)
+                token = authHeader.substring(7).trim();
+                log.info("Token after removing Bearer: {}", token);
 
-        // Authenticate if the token is valid and username is not null
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            UserDetails userDetails = context.getBean(CustomUserDetailsService.class)
-                    .loadUserByUsername(username);
-
-            if (jwtService.validateToken(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                // Extract username from token
+                username = jwtService.extractUserName(token);
+                log.info("Extracted username: {}", username);
             }
-        }
 
-        filterChain.doFilter(request, response);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(username);
+
+                if (jwtService.validateToken(token, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    log.info("Authentication successful for user: {}", username);
+                }
+            }
+
+            filterChain.doFilter(request, response);
+
+        } catch (RuntimeException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"status\":false,\"message\":\"error detected\",\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 }
 
