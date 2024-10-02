@@ -1,0 +1,2 @@
+do not hard code response message. have a response massage manage where all the
+messages are manage and inject in into the application as a setting

@@ -1,0 +1,46 @@
+{
+  "user": {
+    "id": "12345",
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone_number": "+1234567890",
+    "shipping_address": {
+      "street": "123 Main St",
+      "city": "Somewhere",
+      "state": "CA",
+      "postal_code": "90210",
+      "country": "USA"
+    },
+    "billing_address": {
+      "street": "456 Oak St",
+      "city": "Somewhere Else",
+      "state": "CA",
+      "postal_code": "90211",
+      "country": "USA"
+    },
+    "preferences": {
+      "language": "en",
+      "currency": "USD",
+      "communication_preferences": {
+        "email": true,
+        "sms": false
+      }
+    },
+    "payment_methods": [
+      {
+        "type": "credit_card",
+        "token": "tok_123456789",
+        "last4": "4242",
+        "billing_address": {
+          "street": "456 Oak St",
+          "city": "Somewhere Else",
+          "state": "CA",
+          "postal_code": "90211",
+          "country": "USA"
+        }
+      }
+    ],
+    "account_status": "active",
+    "roles": ["customer"]
+  }
+}

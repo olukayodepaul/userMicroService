@@ -29,6 +29,9 @@ public class SecurityConfig {
         return http.csrf(AbstractHttpConfigurer::disable).
                 authorizeHttpRequests(request -> request
                         .requestMatchers(
+                                "/api/account/register",
+                                "/api/account/send-confirmation-email",
+                                "/api/account/confirm-email",
                                 "/api/auth/login"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -42,5 +45,4 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
 }
