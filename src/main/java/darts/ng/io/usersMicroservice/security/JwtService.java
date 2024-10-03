@@ -17,9 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 @Service
@@ -56,7 +54,7 @@ public class JwtService {
     // Generate token with additional claims
     public String generateToken(Map<String, Object> extraClaims, String userId, String email, String organisationId) {
 
-        extraClaims.put("id", userId);
+        extraClaims.put("uuid", userId);
         extraClaims.put("email", email);
         extraClaims.put("organisationId", organisationId);
 
@@ -118,13 +116,13 @@ public class JwtService {
     }
 
     // Method to extract userId from the token
-    public Integer extractId(String token) {
+    public UUID extractUUID(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        return claims.get("id", Integer.class);
+        return claims.get("uuid", UUID.class);
     }
 
     // Method to extract user email from the token
@@ -152,4 +150,9 @@ public class JwtService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(extractUsername(token));
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
+
+    public String jwtToken(String Id, String email, String organisationId) {
+        return generateToken(new HashMap<>(), Id, email, organisationId);
+    }
+
 }

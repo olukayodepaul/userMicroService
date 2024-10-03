@@ -48,8 +48,11 @@ public class BlackListServiceController {
     }
 
     @DeleteMapping("/{user_id}/blacklist")
-    public ResponseEntity<Void> whitelistUser(@PathVariable Integer user_id, @RequestBody WhitelistReqModel request){
-        return whitelistServiceImpl.whitelistUser(user_id, request);
+    public ResponseEntity<Void> whitelistUser(
+            @RequestBody WhitelistReqModel request,
+            HttpServletRequest headerRequest,
+            @RequestHeader("Authorization") String token){
+        return whitelistServiceImpl.whitelistUser(request, headerRequest, token);
     }
 
 

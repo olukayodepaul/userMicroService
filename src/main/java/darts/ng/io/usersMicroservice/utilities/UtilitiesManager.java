@@ -1,6 +1,7 @@
 package darts.ng.io.usersMicroservice.utilities;
 
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -64,12 +65,12 @@ public class UtilitiesManager {
         return dateTime.format(formatter);
     }
 
-    public String generateUUID(String email) {
+    public UUID generateUUID(String email) {
         UUID namespace = UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
         String currentDateTime = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS"));
         String combined = email + currentDateTime;
-        return UUID.nameUUIDFromBytes((namespace.toString() + combined).getBytes(StandardCharsets.UTF_8)).toString();
+        return UUID.nameUUIDFromBytes((namespace.toString() + combined).getBytes(StandardCharsets.UTF_8));
     }
 
     public boolean isValidNumber(String period_in_second) {

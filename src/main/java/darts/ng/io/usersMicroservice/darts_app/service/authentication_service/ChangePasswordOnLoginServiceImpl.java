@@ -5,10 +5,11 @@ import darts.ng.io.usersMicroservice.darts_app.entity.ChangePasswordOnLoginReqMo
 import darts.ng.io.usersMicroservice.darts_app.entity.ChangePasswordOnLoginResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.FetchUserDetailsCacheModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
+import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
 import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
-import darts.ng.io.usersMicroservice.darts_app.rate_limit.RateLimitService;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
+import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,99 +17,99 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
+import java.time.LocalDateTime;
+
 
 
 @Service
 public class ChangePasswordOnLoginServiceImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(RequestResetPasswordServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ChangePasswordOnLoginServiceImpl.class);
     private final UserDatabaseRepo databaseRep;
     private final ValidationUtils validationUtils;
-    private final DatabaseSaveUpdatedService databaseSaveUpdatedService;
+    private final DbSaveUpdatedService dbSaveUpdatedService;
     private final BCryptPasswordEncoder encoder;
     private final UserRedisCacheRepo cacheService;
     private final MessageBrokerManager messageBrokerManager;
-
+    private final JwtService jwtService;
 
     public ChangePasswordOnLoginServiceImpl(
             UserDatabaseRepo databaseRep,
             ValidationUtils validationUtils,
-            DatabaseSaveUpdatedService databaseSaveUpdatedService,
+            DbSaveUpdatedService dbSaveUpdatedService,
             UserRedisCacheRepo cacheService,
-            MessageBrokerManager messageBrokerManager
+            MessageBrokerManager messageBrokerManager,
+            JwtService jwtService
     ) {
         this.databaseRep = databaseRep;
         this.validationUtils = validationUtils;
-        this.databaseSaveUpdatedService = databaseSaveUpdatedService;
+        this.dbSaveUpdatedService = dbSaveUpdatedService;
         this.encoder = new BCryptPasswordEncoder(12);
         this.cacheService = cacheService;
         this.messageBrokerManager = messageBrokerManager;
+        this.jwtService = jwtService;
     }
 
-    public ResponseEntity<ChangePasswordOnLoginResModel> changePasswordOnLogin(ChangePasswordOnLoginReqModel request) {
+    public ResponseEntity<ChangePasswordOnLoginResModel> changePasswordOnLogin(ChangePasswordOnLoginReqModel request, String token) {
 
-        validationUtils.validateMatchPattern(
-                request.getNew_password(),
-                request.getConfirm_password(),
-                "New password and confirm password dot not match"
-        );
-
+        validationUtils.validateMatchPattern(request.getNew_password(), request.getConfirm_password(), AppConfig.CHANGE_PASSWORD_NOT_MATCH);
         validationUtils.validatePasswordStrength(request.getNew_password());
 
-        Optional<UsersDatabaseModel> userByEmail =  databaseRep.findById(request.getUser_id());
+        // Check if the user exists
+        UsersDatabaseModel existingUser = databaseRep.findByUuid(jwtService.extractUUID(token))
+                .orElseThrow(() -> new CustomRuntimeException(
+                        new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_UUID),
+                        HttpStatus.NOT_FOUND
+                ));
 
-        if(userByEmail.isPresent()) {
+        validationUtils.validatePassword(request.getConfirm_password(), existingUser.getPassword());
+        validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
+        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
 
-            //check if email if confirm or blacklisted
-            UsersDatabaseModel existingUser = userByEmail.get();
-            validationUtils.validatePassword(request.getConfirm_password(), existingUser.getPassword());
+        UsersDatabaseModel updateUser = updatePassword(existingUser, request.getNew_password());
+        UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
 
-            // Build updated user details with password reset info
-            UsersDatabaseModel resetPassword = UsersDatabaseModel.builder()
-                    .id(existingUser.getId())
-                    .user_id(existingUser.getUser_id())
-                    .email(existingUser.getEmail())
-                    .password(encoder.encode(request.getNew_password()))
-                    .role(existingUser.getRole())
-                    .organisation_id(existingUser.getOrganisation_id())
-                    .password_reset_code(existingUser.getPassword_reset_code())
-                    .password_reset_expiration(existingUser.getPassword_reset_expiration())
-                    .confirmation_link(existingUser.getConfirmation_link())
-                    .confirmation_code(existingUser.getConfirmation_code())
-                    .confirmation_token_expiration(existingUser.getConfirmation_token_expiration())
-                    .is_active(existingUser.getIs_active())
-                    .is_blacklisted(existingUser.getIs_blacklisted())
-                    .blacklist_expire_at(existingUser.getBlacklist_expire_at())
-                    .created_at(existingUser.getCreated_at())
-                    .updated_at(existingUser.getUpdated_at())
-                    .build();
-
-            UsersDatabaseModel savedUser = databaseSaveUpdatedService.saveUpdatedUserDetails(resetPassword);
-
-            if (savedUser.getId().equals(existingUser.getId())) {
-
-                FetchUserDetailsCacheModel deleteCachedUser = cacheService.deleteUserDetails(savedUser.getEmail());
-
-                if (deleteCachedUser.getStatus()) {
-                    messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", savedUser.getEmail());
-                }
-
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-            }
-
-
+        if (!saveResult.getStatus()) {
             throw new CustomRuntimeException(
-                    new ErrorHandler(false, "User not found in the blacklist", "The user you are trying to whitelist is not blacklisted"),
-                    HttpStatus.NOT_FOUND
+                    new ErrorHandler(false, "We can't confirm the uuid at this moment", saveResult.getError()),
+                    HttpStatus.BAD_REQUEST
             );
-
         }
 
-        throw new CustomRuntimeException(
-                new ErrorHandler(false, "User not found in the blacklist", "The user you are trying to whitelist is not blacklisted"),
-                HttpStatus.NOT_FOUND
-        );
+        FetchUserDetailsCacheModel deleteCachedUser = cacheService.deleteUserDetails(updateUser.getEmail());
 
+        if (deleteCachedUser.getStatus()) {
+            messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", updateUser.getEmail());
+        }
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    /**
+     * Updates the user model with a new confirmation link, token, and expiration time.
+     *
+     * @param user The user data to be updated.
+     * @param newPassword the new changed password
+     * @return UsersDatabaseModel containing updated user details.
+     */
+    private UsersDatabaseModel updatePassword(UsersDatabaseModel user, String newPassword) {
+        return UsersDatabaseModel.builder()
+                .id(user.getId())
+                .uuid(user.getUuid())
+                .email(user.getEmail())
+                .password(encoder.encode(newPassword))
+                .role(user.getRole())
+                .organisation_id(user.getOrganisation_id())
+                .password_reset_code(user.getPassword_reset_code())
+                .password_reset_expiration(user.getPassword_reset_expiration())
+                .confirmation_link(user.getConfirmation_link())
+                .confirmation_code(user.getConfirmation_code())
+                .confirmation_token_expiration(user.getConfirmation_token_expiration())
+                .is_active(user.getIs_active())
+                .is_blacklisted(user.getIs_blacklisted())
+                .blacklist_expire_at(user.getBlacklist_expire_at())
+                .created_at(user.getCreated_at())
+                .updated_at(user.getUpdated_at())
+                .build();
     }
 }

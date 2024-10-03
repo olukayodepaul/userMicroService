@@ -9,6 +9,5 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WhitelistReqModel {
-    private Integer user_id;
     private String reason;
 }

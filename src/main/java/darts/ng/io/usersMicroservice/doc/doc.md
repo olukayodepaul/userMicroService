@@ -6,7 +6,7 @@
 -- This is table responsible for registration
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,                                          			-- Unique identifier for each user, part of token id
-    user_id VARCHAR(255),                                           			-- Unique identifier use to expose users and it can change
+    uuid UUID NOT NULL UNIQUE,                                                  -- uuid with a unique constraint.  Unique identifier
     email VARCHAR(255) NOT NULL,                                    			-- User's email address
     password TEXT NOT NULL,                                         			-- User's hashed password
     role VARCHAR(50),                                               			-- User's role (e.g., admin, user, etc.)
@@ -23,9 +23,12 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT '1900-01-01 00:00:00'                 			-- Timestamp when the user account was last updated
 );
 
+CREATE INDEX idx_user_id ON users (id);
+CREATE INDEX idx_user_uuid ON users (uuid);
+
 CREATE TABLE blacklist (
     id SERIAL PRIMARY KEY,                                           	        -- Unique identifier for each blacklist entry
-    users_id INTEGER NOT NULL,                                       	        -- ID of the user being blacklisted
+    uuid UUID NOT NULL UNIQUE,                                                  -- uuid with a unique constraint.  Unique identifier
     ip_address VARCHAR(45),                                          	        -- IP address (IPv4 or IPv6) to be blacklisted
     reason TEXT,                                                     	        -- Reason for blacklisting
     is_active BOOLEAN DEFAULT TRUE,                                  	        -- Flag to indicate if this blacklist entry is currently active
@@ -33,3 +36,6 @@ CREATE TABLE blacklist (
     updated_at TIMESTAMP DEFAULT '1900-01-01 00:00:00',                         -- Timestamp when the entry was last updated
     expiry_at TIMESTAMP DEFAULT '1900-01-01 00:00:00'                           -- Timestamp for when the blacklist entry expires (optional)
 );
+
+CREATE INDEX idx_user_blacklist_uuid ON blacklist (uuid);
+CREATE INDEX idx_user_blacklist_id ON blacklist (id);

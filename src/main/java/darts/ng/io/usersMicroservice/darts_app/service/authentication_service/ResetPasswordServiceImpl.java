@@ -1,22 +1,20 @@
 package darts.ng.io.usersMicroservice.darts_app.service.authentication_service;
 
-import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserCacheModel;
+import darts.ng.io.usersMicroservice.darts_app.entity.FetchUserDetailsCacheModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.ResetPasswordReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.ResetPasswordResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
+import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
 import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
-import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 public class ResetPasswordServiceImpl {
@@ -24,144 +22,118 @@ public class ResetPasswordServiceImpl {
     private static final Logger logger = LoggerFactory.getLogger(ResetPasswordServiceImpl.class);
     private final UserDatabaseRepo databaseRep;
     private final UtilitiesManager utilitiesManager;
-    private final BCryptPasswordEncoder encoder;
-    private final UserRedisCacheRepo cacheService;
     private final MessageBrokerManager messageBrokerManager;
-    private final JwtService jwtService;
     private final ValidationUtils validationUtils;
-    private final DatabaseSaveUpdatedService databaseSaveUpdatedService;
+    private final DbSaveUpdatedService dbSaveUpdatedService;
+    private final UserRedisCacheRepo cacheService;
 
     /**
      * Constructor to initialize dependencies.
      *
      * @param databaseRep      the repository for accessing user data
-     * @param emailValidator   utility for validating email addresses
      * @param utilitiesManager utility for general utility functions
      * @param cacheService     the cache repository for storing user details
      * @param messageBrokerManager the Kafka message broker for messaging
-     * @param jwtService       the JWT service for managing tokens
      */
     public ResetPasswordServiceImpl(
             UserDatabaseRepo databaseRep,
-            EmailValidator emailValidator,
             UtilitiesManager utilitiesManager,
-            UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,
-            JwtService jwtService,
             ValidationUtils validationUtils,
-            DatabaseSaveUpdatedService databaseSaveUpdatedService
+            DbSaveUpdatedService dbSaveUpdatedService,
+            UserRedisCacheRepo cacheService
 
     ) {
         this.databaseRep = databaseRep;
         this.utilitiesManager = utilitiesManager;
-        this.encoder = new BCryptPasswordEncoder(12);
-        this.cacheService = cacheService;
         this.messageBrokerManager = messageBrokerManager;
-        this.jwtService = jwtService;
         this.validationUtils = validationUtils;
-        this.databaseSaveUpdatedService = databaseSaveUpdatedService;
+        this.dbSaveUpdatedService = dbSaveUpdatedService;
+        this.cacheService = cacheService;
     }
 
     public ResponseEntity<ResetPasswordResModel> resetPassword(ResetPasswordReqModel request) {
 
-        validationUtils.validateEmail(request.getEmail());
+        validationUtils.sanitizeEmail(request.getEmail());
         validationUtils.validateRequest(request);
         validationUtils.validatePasswordStrength(request.getNew_password());
 
-        Optional<UsersDatabaseModel> userByEmail = databaseRep.findByEmail(request.getEmail());
+        // Check if the user exists
+        UsersDatabaseModel existingUser = databaseRep.findByEmail(request.getEmail())
+                .orElseThrow(() -> new CustomRuntimeException(
+                        new ErrorHandler(false, "validation check", "Email does not exist"),
+                        HttpStatus.NOT_FOUND
+                ));
 
-        if (userByEmail.isPresent()) {
+        // Validate the user account's active and blacklist status
+        validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
+        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
 
-            UsersDatabaseModel existingUser = userByEmail.get();
+        UsersDatabaseModel updateUser = updateUserPassword(existingUser, request.getNew_password());
+        UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
 
-            validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
-
-            if (existingUser.getPassword_reset_expiration().isBefore(LocalDateTime.now())) {
-                throw new CustomRuntimeException(
-                        new ErrorHandler(
-                                false,
-                                "Expiration limit exceeded",
-                                "Password reset code has expired. Please request a new reset code."),
-                        HttpStatus.GONE
-                );
-            }
-
-            if (!encoder.matches(request.getReset_code(), existingUser.getPassword_reset_code())) {
-                throw new CustomRuntimeException(
-                        new ErrorHandler(false,
-                                "Invalid reset code",
-                                "Kindly provide valid reset code"),
-                        HttpStatus.UNAUTHORIZED
-                );
-            }
-
-            // Build updated user details with password reset info
-            UsersDatabaseModel updatedUserModel = UsersDatabaseModel.builder()
-                    .id(existingUser.getId())
-                    .user_id(existingUser.getUser_id())
-                    .email(existingUser.getEmail())
-                    .password(encoder.encode(request.getNew_password()))
-                    .role(existingUser.getRole())
-                    .organisation_id(existingUser.getOrganisation_id())
-                    .password_reset_code("")
-                    .password_reset_expiration(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
-                    .confirmation_link(existingUser.getConfirmation_link())
-                    .confirmation_code(existingUser.getConfirmation_code())
-                    .confirmation_token_expiration(existingUser.getConfirmation_token_expiration())
-                    .is_active(existingUser.getIs_active())
-                    .is_blacklisted(existingUser.getIs_blacklisted())
-                    .blacklist_expire_at(existingUser.getBlacklist_expire_at())
-                    .created_at(existingUser.getCreated_at())
-                    .updated_at(existingUser.getUpdated_at())
-                    .build();
-
-            UsersDatabaseModel savedUser = databaseSaveUpdatedService.saveUpdatedUserDetails(updatedUserModel);
-
-            UserCacheModel updatedCacheModel = UserCacheModel.builder()
-                    .id(savedUser.getId())
-                    .user_id(savedUser.getUser_id())
-                    .email(savedUser.getEmail())
-                    .password(savedUser.getPassword())
-                    .role(savedUser.getRole())
-                    .organisation_id(savedUser.getOrganisation_id())
-                    .password_reset_code(savedUser.getPassword_reset_code())
-                    .password_reset_expiration(utilitiesManager.convertDateTimeToString(savedUser.getPassword_reset_expiration()))
-                    .confirmation_link(existingUser.getConfirmation_link())
-                    .confirmation_code(existingUser.getConfirmation_code())
-                    .confirmation_token_expiration(utilitiesManager.convertDateTimeToString(existingUser.getConfirmation_token_expiration()))
-                    .is_active(existingUser.getIs_active())
-                    .is_blacklisted(savedUser.getIs_blacklisted())
-                    .blacklist_expire_at(utilitiesManager.convertDateTimeToString(savedUser.getBlacklist_expire_at()))
-                    .created_at(utilitiesManager.convertDateTimeToString(savedUser.getCreated_at()))
-                    .updated_at(utilitiesManager.convertDateTimeToString(savedUser.getUpdated_at()))
-                    .build();
-
-            Boolean cacheUpdateResult = cacheService.saveUpdateUserDetails(updatedCacheModel);
-
-            if (!cacheUpdateResult) {
-                messageBrokerManager.updateUserDetailsThroughMQ("create", updatedCacheModel);
-            }
-
-            jwtService.resetUserAccessToken(savedUser);
-
-            return ResponseEntity.status(HttpStatus.OK).body(
-                    new ResetPasswordResModel(
-                            true,
-                            "Password has been updated successfully",
-                            new ResetPasswordResModel.Details(
-                                    savedUser.getEmail(),
-                                    savedUser.getUpdated_at()
-                            )
-                    )
+        // Handle failure in saving the user
+        if (!saveResult.getStatus()) {
+            throw new CustomRuntimeException(
+                    new ErrorHandler(false, "We can't confirm the email at this moment", saveResult.getError()),
+                    HttpStatus.BAD_REQUEST
             );
         }
 
-        throw new CustomRuntimeException(
-                new ErrorHandler(false,
-                        "invalid email",
-                        "Kindly provide valid email address"),
-                HttpStatus.BAD_REQUEST
+        FetchUserDetailsCacheModel deleteCacheRecord = cacheService.deleteUserDetails(request.getEmail());
+
+        //Todo: change this to kafka
+        if (deleteCacheRecord.getStatus()) {
+            messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", request.getEmail());
+        }
+
+        // Build the response with the updated record and return
+        return ResponseEntity.status(HttpStatus.CREATED).body(buildResponse(saveResult));
+    }
+
+    /**
+     * Updates the user model with a new confirmation link, token, and expiration time.
+     *
+     * @param request The user data to be updated.
+     * @return UsersDatabaseModel containing updated user details.
+     */
+    private UsersDatabaseModel updateUserPassword(UsersDatabaseModel request, String newPassword) {
+        String encodedPassword = validationUtils.plainTextEncryption(newPassword);
+        return UsersDatabaseModel.builder()
+                .id(request.getId())
+                .uuid(request.getUuid())
+                .email(request.getEmail())
+                .password(encodedPassword)
+                .role(request.getRole())
+                .organisation_id(request.getOrganisation_id())
+                .password_reset_code("")
+                .password_reset_expiration(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
+                .confirmation_link(request.getConfirmation_link())
+                .confirmation_code(request.getConfirmation_code())
+                .confirmation_token_expiration(request.getConfirmation_token_expiration())
+                .is_active(request.getIs_active())
+                .is_blacklisted(request.getIs_blacklisted())
+                .blacklist_expire_at(request.getBlacklist_expire_at())
+                .created_at(request.getCreated_at())
+                .updated_at(request.getUpdated_at())
+                .build();
+    }
+
+    /**
+     * Builds the response to be sent after a successful confirmation link generation.
+     *
+     * @param updatedRecord The updated user record after processing.
+     * @return UserRegistrationEmailConfirmationResModel containing the confirmation details.
+     */
+    private ResetPasswordResModel buildResponse(UserRecordMapper updatedRecord) {
+        return new ResetPasswordResModel(
+                true,
+                "Password has been updated successfully",
+                new ResetPasswordResModel.Details(
+                        updatedRecord.getUsers().getEmail(),
+                        updatedRecord.getUsers().getUpdated_at()
+                )
         );
     }
+
 }

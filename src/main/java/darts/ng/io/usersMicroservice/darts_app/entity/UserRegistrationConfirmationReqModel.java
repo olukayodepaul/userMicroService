@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfirmEmailReqModel {
+public class UserRegistrationConfirmationReqModel {
     private String email;
     private String confirmation_code_link;
 }

@@ -13,167 +13,136 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Optional;
 
 @Service
 public class UserLoginServiceImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(UserLoginServiceImpl.class);
-    private final UserDatabaseRepo registrationRepo;
-    private final EmailValidator emailValidator;
+    private final UserDatabaseRepo userRepo;
     private final UserRedisCacheRepo cacheService;
     private final MessageBrokerManager messageBrokerManager;
-    private final BCryptPasswordEncoder encoder;
     private final UtilitiesManager utilitiesManager;
     private final JwtService jwtService;
     private final ValidationUtils validationUtils;
-    private final DatabaseSaveUpdatedService databaseSaveUpdatedService;
 
     public UserLoginServiceImpl(
-            UserDatabaseRepo registrationRepo,
-            EmailValidator emailValidator,
+            UserDatabaseRepo userRepo,
             UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,
             UtilitiesManager utilitiesManager,
             JwtService jwtService,
-            ValidationUtils validationUtils,
-            DatabaseSaveUpdatedService databaseSaveUpdatedService
+            ValidationUtils validationUtils
     ) {
-        this.registrationRepo = registrationRepo;
-        this.emailValidator = emailValidator;
+        this.userRepo = userRepo;
         this.cacheService = cacheService;
         this.messageBrokerManager = messageBrokerManager;
-        this.encoder = new BCryptPasswordEncoder(12);
         this.utilitiesManager = utilitiesManager;
         this.jwtService = jwtService;
         this.validationUtils = validationUtils;
-        this.databaseSaveUpdatedService = databaseSaveUpdatedService;
     }
 
-    public ResponseEntity<UserLoginResModel> userAuthentication(UserLoginReqModel bodyRequest) {
+    public ResponseEntity<UserLoginResModel> userAuthentication(UserLoginReqModel request) {
 
-        validationUtils.passwordValidateRequest(bodyRequest);
-        validationUtils.validateEmail(bodyRequest.getEmail());
+        validationUtils.sanitizeEmail(request.getEmail());
+        validationUtils.bruteForceProtection(request.getEmail(), AppConfig.LOGIN_RESET_LIMIT);
+        validationUtils.validatePasswordStrength(request.getPassword());
 
-        FetchUserDetailsCacheModel userFromCacheByEmail = cacheService.fetchUserDetails(bodyRequest.getEmail());
+        // Check cache first
+        FetchUserDetailsCacheModel existingUser = cacheService.fetchUserDetails(request.getEmail());
+        if (existingUser.getStatus()) {
 
-        if (userFromCacheByEmail.getStatus()) {
+            UserCacheModel existingUserInCache = existingUser.getUserDetails();
+            validationUtils.validateAccountStatus(existingUserInCache.getIs_active(), existingUserInCache.getIs_blacklisted());
+            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), utilitiesManager.convertStringToDateTime(existingUserInCache.getBlacklist_expire_at()));
+            validationUtils.validatePassword(existingUserInCache.getPassword(), request.getPassword());
 
-            UserCacheModel existingUserInCache = userFromCacheByEmail.getUserDetails();
+            String requestToken = jwtService.jwtToken(existingUserInCache.getId().toString(), existingUserInCache.getEmail(), existingUserInCache.getOrganisation_id().toString());
+            return ResponseEntity.status(HttpStatus.OK).body(buildResponse(
+                    existingUserInCache.getEmail(),
+                    existingUserInCache.getRole(),
+                    existingUserInCache.getOrganisation_id(),
+                    existingUserInCache.getIs_active(),
+                    existingUserInCache.getIs_blacklisted(),
+                    utilitiesManager.convertStringToDateTime(existingUserInCache.getUpdated_at()),
+                    utilitiesManager.convertStringToDateTime(existingUserInCache.getCreated_at()),
+                    requestToken
+            ));
+        }
+        // If not in cache, fetch from database
+        else {
 
-//            validationUtils.validateAccountStatus(existingUserInCache.getIs_active(), existingUserInCache.getIs_blacklisted());
-//            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), utilitiesManager.convertStringToDateTime(existingUserInCache.getBlacklist_expire_at()));
-
-            if (!encoder.matches(bodyRequest.getPassword(), existingUserInCache.getPassword())) {
-                throw new CustomRuntimeException(
-                        new ErrorHandler(false,
-                                "Password not match",
-                                "Invalid password. Please try again."),
-                        HttpStatus.UNAUTHORIZED
-                );
-            }
-
-            String jwtToken = jwtToken(existingUserInCache.getId().toString(), existingUserInCache.getEmail(), existingUserInCache.getOrganisation_id().toString());
-
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(new UserLoginResModel(
-                            true,
-                            "New user successfully created",
-                            new UserLoginResModel.Details(
-                                    existingUserInCache.getId(),
-                                    existingUserInCache.getUser_id(),
-                                    existingUserInCache.getEmail(),
-                                    existingUserInCache.getRole(),
-                                    existingUserInCache.getOrganisation_id(),
-                                    existingUserInCache.getIs_active(),
-                                    existingUserInCache.getIs_blacklisted(),
-                                    utilitiesManager.convertStringToDateTime(existingUserInCache.getCreated_at()),
-                                    utilitiesManager.convertStringToDateTime(existingUserInCache.getUpdated_at()),
-                                    jwtToken
-                            )
+            UsersDatabaseModel findUser = userRepo.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new CustomRuntimeException(
+                            new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_EMAIL),
+                            HttpStatus.NOT_FOUND
                     ));
 
-        }
+            validationUtils.validateAccountStatus(findUser.getIs_active(), findUser.getIs_blacklisted());
+            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), findUser.getBlacklist_expire_at());
+            validationUtils.validatePassword(findUser.getPassword(), request.getPassword());
 
-        Optional<UsersDatabaseModel> userFromDbByEmail = registrationRepo.findByEmail(bodyRequest.getEmail());
+            String requestToken = jwtService.jwtToken(findUser.getId().toString(), findUser.getEmail(), findUser.getOrganisation_id().toString());
 
-        if (userFromDbByEmail.isPresent()) {
-
-            UsersDatabaseModel existingUserInDb = userFromDbByEmail.get();
-
-//            validationUtils.validateAccountStatus(existingUserInDb.getIs_active(), existingUserInDb.getIs_blacklisted());
-//            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUserInDb.getBlacklist_expire_at());
-
-            if (!encoder.matches(bodyRequest.getPassword(), existingUserInDb.getPassword())) {
-                throw new CustomRuntimeException(
-                        new ErrorHandler(false,
-                                "Invalid reset code",
-                                "Kindly provide valid reset code"),
-                        HttpStatus.UNAUTHORIZED
-                );
-            }
-
-            UserCacheModel updatedCacheModel = UserCacheModel.builder()
-                    .id(existingUserInDb.getId())
-                    .user_id(existingUserInDb.getUser_id())
-                    .email(existingUserInDb.getEmail())
-                    .password(existingUserInDb.getPassword())
-                    .role(existingUserInDb.getRole())
-                    .organisation_id(existingUserInDb.getOrganisation_id())
-                    .password_reset_code(existingUserInDb.getPassword_reset_code())
-                    .password_reset_expiration(utilitiesManager.convertDateTimeToString(existingUserInDb.getPassword_reset_expiration()))
-                    .confirmation_link(existingUserInDb.getConfirmation_link())
-                    .confirmation_code(existingUserInDb.getConfirmation_code())
-                    .confirmation_token_expiration(utilitiesManager.convertDateTimeToString(existingUserInDb.getConfirmation_token_expiration()))
-                    .is_active(existingUserInDb.getIs_active())
-                    .is_blacklisted(existingUserInDb.getIs_blacklisted())
-                    .blacklist_expire_at(utilitiesManager.convertDateTimeToString(existingUserInDb.getBlacklist_expire_at()))
-                    .created_at(utilitiesManager.convertDateTimeToString(existingUserInDb.getCreated_at()))
-                    .updated_at(utilitiesManager.convertDateTimeToString(existingUserInDb.getUpdated_at()))
-                    .build();
-
-            Boolean saveIntoRedisCache = cacheService.saveUpdateUserDetails(updatedCacheModel);
-
-            //todo: if cache failed, then push to messageBroker(Kafka) for retry
+            // Save user data to cache
+            Boolean saveIntoRedisCache = cacheService.saveUpdateUserDetails(cacheRecord(findUser));
             if (!saveIntoRedisCache) {
-                messageBrokerManager.updateUserDetailsThroughMQ("update", updatedCacheModel);
+                messageBrokerManager.updateUserDetailsThroughMQ("update", findUser);
             }
 
-            String jwtToken = jwtToken(existingUserInDb.getId().toString(), existingUserInDb.getEmail(), existingUserInDb.getOrganisation_id().toString());
-
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(new UserLoginResModel(
-                            true,
-                            "New user successfully created",
-                            new UserLoginResModel.Details(
-                                    existingUserInDb.getId(),
-                                    existingUserInDb.getUser_id(),
-                                    existingUserInDb.getEmail(),
-                                    existingUserInDb.getRole(),
-                                    existingUserInDb.getOrganisation_id(),
-                                    existingUserInDb.getIs_active(),
-                                    existingUserInDb.getIs_blacklisted(),
-                                    existingUserInDb.getCreated_at(),
-                                    existingUserInDb.getUpdated_at(),
-                                    jwtToken
-                            )
-                    ));
+            return ResponseEntity.status(HttpStatus.OK).body(buildResponse(
+                    findUser.getEmail(),
+                    findUser.getRole(),
+                    findUser.getOrganisation_id(),
+                    findUser.getIs_active(),
+                    findUser.getIs_blacklisted(),
+                    findUser.getUpdated_at(),
+                    findUser.getCreated_at(),
+                    requestToken
+            ));
         }
+    }
 
-        throw new CustomRuntimeException(
-                new ErrorHandler(false,
-                        "Invalid login credential",
-                        "kindly provide valid login credential"),
-                HttpStatus.INTERNAL_SERVER_ERROR
+
+    private UserLoginResModel buildResponse(String email, String role, Integer organisationId, Boolean isActive, Boolean isBlackListed,
+            LocalDateTime updatedAt, LocalDateTime createdAt, String token)
+    {
+        return new UserLoginResModel(
+                true,
+                "Confirmation link and token are generated. Kindly send to user email for confirmation.",
+                new UserLoginResModel.Details(
+                        email,
+                        role,
+                        organisationId,
+                        isActive,
+                        isBlackListed,
+                        updatedAt,
+                        createdAt,
+                        token
+                )
         );
     }
 
-    private String jwtToken(String Id, String email, String organisationId) {
-        return jwtService.generateToken(new HashMap<>(), Id, email, organisationId);
+    private UserCacheModel cacheRecord(UsersDatabaseModel user) {
+        return UserCacheModel.builder()
+                .id(user.getId())
+                .uuid(user.getUuid())
+                .email(user.getEmail())
+                .password(user.getPassword())
+                .role(user.getRole())
+                .organisation_id(user.getOrganisation_id())
+                .password_reset_code(user.getPassword_reset_code())
+                .password_reset_expiration(utilitiesManager.convertDateTimeToString(user.getPassword_reset_expiration()))
+                .confirmation_link(user.getConfirmation_link())
+                .confirmation_code(user.getConfirmation_code())
+                .confirmation_token_expiration(utilitiesManager.convertDateTimeToString(user.getConfirmation_token_expiration()))
+                .is_active(user.getIs_active())
+                .is_blacklisted(user.getIs_blacklisted())
+                .blacklist_expire_at(utilitiesManager.convertDateTimeToString(user.getBlacklist_expire_at()))
+                .created_at(utilitiesManager.convertDateTimeToString(user.getCreated_at()))
+                .updated_at(utilitiesManager.convertDateTimeToString(user.getUpdated_at()))
+                .build();
     }
-
 }

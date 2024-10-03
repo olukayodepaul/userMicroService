@@ -10,20 +10,20 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class RateLimitService {
+public class BruteForceRateLimitService {
 
-    private static final Logger logger = LoggerFactory.getLogger(RateLimitService.class);
+    private static final Logger logger = LoggerFactory.getLogger(BruteForceRateLimitService.class);
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public RateLimitService(RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
+    public BruteForceRateLimitService(RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
 
-    public boolean isRateLimited(String email) {
+    public boolean isRateLimited(String email, String cacheKey) {
        try {
-           String key = "rate_limit_reset:" + email;
+           String key = cacheKey + email;
 
            Boolean keyExists = redisTemplate.hasKey(key);
 
@@ -50,9 +50,11 @@ public class RateLimitService {
     }
 
     // Method to manually reset the rate limit for a user (if needed)
-    public void resetRateLimit(String email) {
-        String key = "rate_limit_reset:" + email;
+    public void resetRateLimit(String email, String cacheKey) {
+        String key = cacheKey + email;
         redisTemplate.delete(key);
     }
+
+
 
 }

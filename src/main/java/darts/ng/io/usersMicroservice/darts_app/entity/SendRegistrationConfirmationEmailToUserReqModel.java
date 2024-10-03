@@ -9,6 +9,6 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SendEmailReqModel {
+public class SendRegistrationConfirmationEmailToUserReqModel {
     private String email;
 }

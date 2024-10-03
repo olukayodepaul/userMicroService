@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Data
@@ -21,7 +22,7 @@ public class UsersDatabaseModel {
 
     @Column(unique = true)
     private String email;
-    private String user_id;
+    private UUID uuid;
     private String password;
     private String role;
     private Integer organisation_id;

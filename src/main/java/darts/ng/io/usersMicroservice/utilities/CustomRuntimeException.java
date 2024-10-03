@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public class CustomRuntimeException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
 
     private final HttpStatus status;
     private final ErrorHandler responseHandler;
@@ -16,4 +17,12 @@ public class CustomRuntimeException extends RuntimeException {
         this.responseHandler = responseHandler;
     }
 
+    @Override
+    public String toString() {
+        return "CustomRuntimeException{" +
+                "status=" + status +
+                ", responseHandler=" + responseHandler +
+                ", message='" + getMessage() + '\'' +
+                '}';
+    }
 }

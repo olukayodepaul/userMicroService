@@ -10,7 +10,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddBlacklistEntryReqModel {
-    private Integer user_id;
     private String reason;
     private String period_in_second;
 }

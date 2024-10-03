@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SendConfirmationResModel {
+public class SendRegistrationConfirmationEmailToUserResModel {
     private Boolean status;
     private String message;
     private Details confirmation_details;
@@ -24,7 +24,6 @@ public class SendConfirmationResModel {
     @AllArgsConstructor
     public static class Details {
         private String email;
-        private String user_id;
         private String confirmation_code;
         private String confirmation_link;
         private LocalDateTime created_at;

@@ -42,8 +42,11 @@ public class AuthenticationController {
     }
 
     @PutMapping("/reset-password")
-    public ResponseEntity<ChangePasswordOnLoginResModel> changePasswordOnLogin(@RequestBody ChangePasswordOnLoginReqModel request) {
-        return changePasswordOnLoginService.changePasswordOnLogin(request);
+    public ResponseEntity<ChangePasswordOnLoginResModel> changePasswordOnLogin(
+            @RequestBody ChangePasswordOnLoginReqModel request,
+            @RequestHeader("Authorization") String token
+    ) {
+        return changePasswordOnLoginService.changePasswordOnLogin(request, token);
     }
 
 }

@@ -6,13 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserBlackListedResponseModel {
-    private Integer user_id;
+    private UUID uuid;
     private String ip_address;
     private String reason;
     private Boolean is_active;

@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
+import java.util.UUID;
 
 
 @Data
@@ -22,10 +22,7 @@ public class UserBlackListedDbModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-
-    @Column(name = "users_id")
-    private Integer userId;
-
+    private UUID uuid;
     private String ip_address;
     private String reason;
     private Boolean is_active;

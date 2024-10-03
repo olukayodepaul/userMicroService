@@ -1,16 +1,19 @@
 package darts.ng.io.usersMicroservice.darts_app.service.blacklist_service;
 
 
+import darts.ng.io.usersMicroservice.darts_app.entity.AddBlacklistEntryResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.FetchUserDetailsCacheModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.WhitelistReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserBlackListedDbModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
+import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
 import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
 import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class WhitelistServiceImpl {
@@ -30,7 +34,7 @@ public class WhitelistServiceImpl {
     private final UtilitiesManager utilitiesManager;
     private final JwtService jwtService;
     private final ValidationUtils validationUtils;
-    private final DatabaseSaveUpdatedService databaseSaveUpdatedService;
+    private final DbSaveUpdatedService dbSaveUpdatedService;
     private final UserBlackListedRepo userBlackListedRepo;
 
     public WhitelistServiceImpl(
@@ -40,7 +44,7 @@ public class WhitelistServiceImpl {
             UtilitiesManager utilitiesManager,
             JwtService jwtService,
             ValidationUtils validationUtils,
-            DatabaseSaveUpdatedService databaseSaveUpdatedService,
+            DbSaveUpdatedService dbSaveUpdatedService,
             UserBlackListedRepo userBlackListedRepo
     ) {
         this.userDatabaseRepo = userDatabaseRepo;
@@ -49,71 +53,91 @@ public class WhitelistServiceImpl {
         this.utilitiesManager = utilitiesManager;
         this.jwtService = jwtService;
         this.validationUtils = validationUtils;
-        this.databaseSaveUpdatedService = databaseSaveUpdatedService;
+        this.dbSaveUpdatedService = dbSaveUpdatedService;
         this.userBlackListedRepo = userBlackListedRepo;
     }
 
-    public ResponseEntity<Void> whitelistUser(Integer user_id, WhitelistReqModel request){
+    public ResponseEntity<Void> whitelistUser(WhitelistReqModel request, HttpServletRequest headerRequest, String token) {
 
-        Optional<UsersDatabaseModel> getUserById = userDatabaseRepo.findById(user_id);
+        validationUtils.tokenValidateRequest(token);
+        validationUtils.reasonValidateRequest(request.getReason());
 
-        if (getUserById.isPresent()) {
+        String ipAddress = headerRequest.getHeader("X-Forwarded-For");
 
-            UsersDatabaseModel existingUser = getUserById.get();
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = headerRequest.getRemoteAddr();
+        }
 
-            UsersDatabaseModel whileListUserModel = UsersDatabaseModel.builder()
-                    .id(existingUser.getId())
-                    .user_id(existingUser.getUser_id())
-                    .email(existingUser.getEmail())
-                    .password(existingUser.getPassword())
-                    .role(existingUser.getRole())
-                    .organisation_id(existingUser.getOrganisation_id())
-                    .password_reset_code(existingUser.getPassword_reset_code())
-                    .password_reset_expiration(existingUser.getPassword_reset_expiration())
-                    .confirmation_link(existingUser.getConfirmation_link())
-                    .confirmation_code(existingUser.getConfirmation_code())
-                    .confirmation_token_expiration(existingUser.getConfirmation_token_expiration())
-                    .is_active(existingUser.getIs_active())
-                    .is_blacklisted(false)
-                    .blacklist_expire_at(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
-                    .created_at(existingUser.getCreated_at())
-                    .updated_at(existingUser.getUpdated_at())
-                    .build();
+        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(jwtService.extractUUID(token))
+                .orElseThrow(() -> new CustomRuntimeException(
+                        new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_UUID),
+                        HttpStatus.NOT_FOUND
+                ));
 
+        validationUtils.bruteForceProtection(existingUser.getEmail(), AppConfig.WHITE_LIST_LIMIT);
 
-            UsersDatabaseModel savedUser = databaseSaveUpdatedService.saveUpdatedUserDetails(whileListUserModel);
+        validationUtils.validateAccountNotConfirm(existingUser.getIs_active());
+        UsersDatabaseModel updateUser = updateUser(existingUser);
+        UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
 
-            if (savedUser.getId().equals(existingUser.getId())) {
-
-                UserBlackListedDbModel saveUserModel = UserBlackListedDbModel.builder()
-                        .userId(user_id)
-                        .ip_address("0.0.0.")//check the ip to proper ip
-                        .reason(request.getReason())
-                        .is_active(false)
-                        .created_at(LocalDateTime.now())
-                        .updated_at(LocalDateTime.now())
-                        .expiry_at(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
-                        .build();
-
-                userBlackListedRepo.save(saveUserModel);
-
-                FetchUserDetailsCacheModel deleteCachedUser = cacheService.deleteUserDetails(savedUser.getEmail());
-
-                if (deleteCachedUser.getStatus()) {
-                    messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", savedUser.getEmail());
-                }
-
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-            }
-
+        if (!saveResult.getStatus()) {
             throw new CustomRuntimeException(
-                    new ErrorHandler(false, "User not found in the blacklist", "The user you are trying to whitelist is not blacklisted"),
-                    HttpStatus.NOT_FOUND
+                    new ErrorHandler(false, "We can't confirm the user at the moment", saveResult.getError()),
+                    HttpStatus.BAD_REQUEST
             );
         }
-        throw new CustomRuntimeException(
-                new ErrorHandler(false, "User not found in the blacklist", "The user you are trying to whitelist is not blacklisted"),
-                HttpStatus.NOT_FOUND
-        );
+
+        FetchUserDetailsCacheModel deleteCacheRecord = cacheService.deleteUserDetails(saveResult.getUsers().getEmail());
+
+        //Todo: change this to kafka
+        if (deleteCacheRecord.getStatus()) {
+            messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", saveResult.getUsers().getEmail());
+        }
+
+        UserBlackListedDbModel newBlacklist = blackListTrail(saveResult.getUsers().getUuid(), request.getReason(), ipAddress);
+        UserBlackListedDbModel blackListTrailSaveResult = userBlackListedRepo.save(newBlacklist);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    /**
+     * Updates the user model with a new confirmation link, token, and expiration time.
+     *
+     * @param request The user data to be updated.
+     * @return UsersDatabaseModel containing updated user details.
+     */
+    private UsersDatabaseModel updateUser(UsersDatabaseModel request) {
+        return UsersDatabaseModel.builder()
+                .id(request.getId())
+                .uuid(request.getUuid())
+                .email(request.getEmail())
+                .password(request.getPassword())
+                .role(request.getRole())
+                .organisation_id(request.getOrganisation_id())
+                .password_reset_code(request.getPassword_reset_code())
+                .password_reset_expiration(request.getPassword_reset_expiration())
+                .confirmation_link(request.getConfirmation_link())
+                .confirmation_code(request.getConfirmation_code())
+                .confirmation_token_expiration(request.getConfirmation_token_expiration())
+                .is_active(request.getIs_active())
+                .is_blacklisted(false)
+                .blacklist_expire_at(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
+                .created_at(request.getCreated_at())
+                .updated_at(request.getUpdated_at())
+                .build();
+    }
+
+    private UserBlackListedDbModel blackListTrail(UUID uuid, String reason, String ip) {
+        LocalDateTime dateTime = LocalDateTime.now();
+        return UserBlackListedDbModel.builder()
+                .uuid(uuid)
+                .ip_address(ip)
+                .reason(reason)
+                .is_active(false)
+                .created_at(dateTime)
+                .updated_at(dateTime)
+                .expiry_at(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
+                .build();
     }
 }
+

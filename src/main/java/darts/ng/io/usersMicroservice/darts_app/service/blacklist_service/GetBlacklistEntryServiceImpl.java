@@ -4,6 +4,7 @@ import darts.ng.io.usersMicroservice.darts_app.entity.UserBlackListPaginationRes
 import darts.ng.io.usersMicroservice.darts_app.entity.UserBlackListedResponseModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserBlackListedDbModel;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
+import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,80 +23,89 @@ public class GetBlacklistEntryServiceImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(GetBlacklistEntryServiceImpl.class);
     private final UserBlackListedRepo userBlackListedRepo;
+    private final JwtService jwtService;
+    private final ValidationUtils validationUtils;
 
-    public GetBlacklistEntryServiceImpl(UserBlackListedRepo userBlackListedRepo) {
+    public GetBlacklistEntryServiceImpl(UserBlackListedRepo userBlackListedRepo, JwtService jwtService, ValidationUtils validationUtils) {
         this.userBlackListedRepo = userBlackListedRepo;
+        this.jwtService = jwtService;
+        this.validationUtils = validationUtils;
     }
 
-    public ResponseEntity<UserBlackListPaginationResModel> getBlackListEntry(Integer user_id, int offset, Integer limit, String token) {
+    /**
+     * Retrieves blacklist entries for a user.
+     *
+     * @param userId User ID
+     * @param offset Pagination offset
+     * @param limit  Pagination limit (default: 10)
+     * @param token  JWT token
+     * @return Blacklist entries with pagination metadata
+     */
+    public ResponseEntity<UserBlackListPaginationResModel> getBlackListEntry(Integer userId, int offset, Integer limit, String token) {
+        validationUtils.tokenValidateRequest(token);
+        limit = getValidLimit(limit);
 
-        if(limit==null){
-            limit = 10;
-        }
-
-        if (limit < 1 || limit > 100) {
-            throw new CustomRuntimeException(
-                    new ErrorHandler(false, "Limit error", "A limit on the number of objects returned. Limit can range between 1 and 100, and the default is 10."),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        Pageable pageable = PageRequest.of(offset / limit, limit);
-        Optional<Page<UserBlackListedDbModel>> result = userBlackListedRepo.findByUserId(user_id, pageable);
+        Pageable pageable = getPageable(offset, limit);
+        Optional<Page<UserBlackListedDbModel>> result = userBlackListedRepo.findByUuid(jwtService.extractUUID(token), pageable);
 
         if (result.isPresent()) {
             Page<UserBlackListedDbModel> page = result.get();
+            List<UserBlackListedResponseModel> responseList = mapBlacklistEntries(page.getContent());
 
-            List<UserBlackListedResponseModel> responseList = page.getContent().stream()
-                    .map(blackListedDbModel -> new UserBlackListedResponseModel(
-                            blackListedDbModel.getUserId(), // Map the user_id
-                            blackListedDbModel.getIp_address(),
-                            blackListedDbModel.getReason(),
-                            blackListedDbModel.getIs_active(),
-                            blackListedDbModel.getCreated_at(),
-                            blackListedDbModel.getExpiry_at()
-                    ))
-                    .collect(Collectors.toList());
-
-            // Calculate the previous offset
-            Integer previousOffset = page.hasPrevious() ? (page.getNumber() - 1) * page.getSize() : null;
-
-            UserBlackListPaginationResModel.PageMetadata pageMetadata = UserBlackListPaginationResModel.PageMetadata.builder()
-                    .page_info(UserBlackListPaginationResModel.PageMetadata.PageInfo.builder()
-                            .self(new UserBlackListPaginationResModel.PageMetadata.SelfLink(
-                                    page.getNumber() + 1, // Page number (1-based)
-                                    getSelfLink(user_id.toString(), offset, limit) // Generate the self link
-                            ))
-                            .first(1) // First page
-                            .next(page.hasNext() ? page.getNumber() + 2 : null) // Next page
-                            .previous(previousOffset != null ? page.getNumber() : null) // Previous page number
-                            .last(page.getTotalPages()) // Last page
-                            .build())
-                    .previous_offset(previousOffset) // Include previous offset
-                    .build();
-
+            UserBlackListPaginationResModel.PageMetadata pageMetadata = buildPageMetadata(page, offset, limit);
             return ResponseEntity.status(HttpStatus.OK).body(
-                    new UserBlackListPaginationResModel(
-                            responseList, // Return the mapped response list
-                            pageMetadata,
-                            getNextOffset(offset, limit, page),
-                            limit
-                    ));
+                    new UserBlackListPaginationResModel(responseList, pageMetadata, getNextOffset(offset, limit, page), limit));
         }
 
         throw new CustomRuntimeException(
-                new ErrorHandler(false, "error saving record into database", "Kindly visit the support team"),
-                HttpStatus.BAD_REQUEST
-        );
+                new ErrorHandler(false, "Error saving record into database", "Kindly visit the support team"),
+                HttpStatus.BAD_REQUEST);
     }
 
-    // Extracted methods
-    private String getSelfLink(String user_id, int offset, int limit) {
-        return  user_id + "?offset=" + offset + "&limit=" + limit;
+
+
+    private int getValidLimit(Integer limit) {
+        return limit == null ? 10 : Math.max(1, Math.min(limit, 100));
+    }
+
+    private Pageable getPageable(int offset, int limit) {
+        return PageRequest.of(offset / limit, limit);
+    }
+
+    private List<UserBlackListedResponseModel> mapBlacklistEntries(List<UserBlackListedDbModel> dbModels) {
+        return dbModels.stream()
+                .map(dbModel -> new UserBlackListedResponseModel(
+                        dbModel.getUuid(),
+                        dbModel.getIp_address(),
+                        dbModel.getReason(),
+                        dbModel.getIs_active(),
+                        dbModel.getCreated_at(),
+                        dbModel.getExpiry_at()))
+                .collect(Collectors.toList());
+    }
+
+    private UserBlackListPaginationResModel.PageMetadata buildPageMetadata(Page<UserBlackListedDbModel> page, int offset, int limit) {
+        Integer previousOffset = page.hasPrevious() ? (page.getNumber() - 1) * page.getSize() : null;
+        return UserBlackListPaginationResModel.PageMetadata.builder()
+                .page_info(UserBlackListPaginationResModel.PageMetadata.PageInfo.builder()
+                        .self(new UserBlackListPaginationResModel.PageMetadata.SelfLink(page.getNumber() + 1, getSelfLink(page.getContent().get(0).getUuid().toString(), offset, limit)))
+                        .first(1)
+                        .next(page.hasNext() ? page.getNumber() + 2 : null)
+                        .previous(previousOffset != null ? page.getNumber() : null)
+                        .last(page.getTotalPages())
+                        .build())
+                .previous_offset(previousOffset)
+                .build();
+    }
+
+    private String getSelfLink(String userId, int offset, int limit) {
+        return userId + "?offset=" + offset + "&limit=" + limit;
     }
 
     private Integer getNextOffset(int offset, int limit, Page page) {
         return page.hasNext() ? (offset + limit) : 0;
     }
-
 }
+
+
+
