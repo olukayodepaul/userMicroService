@@ -81,7 +81,7 @@ public class JwtService {
     }
 
     // Verify token signature
-    private boolean verifyTokenSignature(String token) {
+    public boolean verifyTokenSignature(String token) {
         try {
             Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token);
             return true;
@@ -97,7 +97,7 @@ public class JwtService {
     }
 
     // Check if the token is expired
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 

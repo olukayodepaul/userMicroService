@@ -1,6 +1,6 @@
 package darts.ng.io.usersMicroservice.configuration;
 
-import darts.ng.io.usersMicroservice.security.JwtFilter;
+import darts.ng.io.usersMicroservice.security.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,14 +26,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http.csrf(AbstractHttpConfigurer::disable).
-                authorizeHttpRequests(request -> request
+        System.out.println("4isxsxs");
+        return http.csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(request -> request
                         .requestMatchers(
                                 "/api/account/register",
                                 "/api/account/send-confirmation-email",
                                 "/api/account/confirm-email",
                                 "/api/auth/login"
-                        ).permitAll()
+                        )
+                        .permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

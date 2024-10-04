@@ -13,9 +13,15 @@ public class AppConfig {
     public static final String INVALID_EMAIL = "Invalid email";
 
 
-    //limit
+    //BRUTE FORCE PROTECTION
+    public static final String REGISTRATION_LIMIT = "registration_rate_limit:";
+
+    //////////
+
+
     public static final String REQUEST_PASSWORD_RESET_LIMIT = "reset_password_rate_limit:";
     public static final String LOGIN_RESET_LIMIT = "login_rate_limit:";
     public static final String WHITE_LIST_LIMIT = "whitelist_rate_limit:";
+
 
 }

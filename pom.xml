@@ -72,6 +72,9 @@
 			<artifactId>jedis</artifactId>
 			<version>5.1.3</version>
 		</dependency>
+
+
+
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
@@ -152,14 +155,37 @@
 			<version>1.3.2</version>
 		</dependency>
 
+		<dependency>
+			<groupId>net.devh</groupId>
+			<artifactId>grpc-client-spring-boot-starter</artifactId>
+			<version>2.14.0.RELEASE</version>
+		</dependency>
+
+
 	</dependencies>
 
 	<build>
 		<plugins>
+
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<!-- os-maven-plugin for detecting the operating system -->
+			<plugin>
+				<groupId>kr.motd.maven</groupId>
+				<artifactId>os-maven-plugin</artifactId>
+				<version>1.7.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>detect</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
 			<!-- Protobuf Maven Plugin -->
 			<plugin>
 				<groupId>org.xolstice.maven.plugins</groupId>

@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 public class MessageBrokerManager {
 
     //used
-    public void pushProfileToProfileMicroMServiceMQ(UserRegistrationReqModel request){}
+    public void pushProfileToProfileMicroMServiceMQ(UserRegistrationReqModel request){
+
+    }
 
     public void PushRegistrationDetailsToCacheMQ(String partition, UserCacheModel cacheModel){
 

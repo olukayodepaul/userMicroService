@@ -4,6 +4,7 @@ import darts.ng.io.usersMicroservice.darts_app.entity.UserRegistrationResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.UserRegistrationReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
+import darts.ng.io.usersMicroservice.darts_app.grpc.GrpcClientService;
 import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.utilities.*;
@@ -26,6 +27,7 @@ public class UserRegistrationServiceImpl {
     private final UtilitiesManager utilitiesManager;
     private final ValidationUtils validationUtils;
     private final DbSaveUpdatedService dbSaveUpdatedService;
+    private final GrpcClientService grpcClientService;
 
     /**
      * Constructor for UserRegistrationServiceImpl.
@@ -41,13 +43,15 @@ public class UserRegistrationServiceImpl {
             MessageBrokerManager messageBrokerManager,
             UtilitiesManager utilitiesManager,
             ValidationUtils validationUtils,
-            DbSaveUpdatedService dbSaveUpdatedService
+            DbSaveUpdatedService dbSaveUpdatedService,
+            GrpcClientService grpcClientService
     ) {
         this.registrationRepo = registrationRepo;
         this.messageBrokerManager = messageBrokerManager;
         this.utilitiesManager = utilitiesManager;
         this.validationUtils = validationUtils;
         this.dbSaveUpdatedService = dbSaveUpdatedService;
+        this.grpcClientService = grpcClientService;
     }
 
     /**
@@ -58,6 +62,8 @@ public class UserRegistrationServiceImpl {
      * @throws CustomRuntimeException if validation fails or user already exists.
      */
     public ResponseEntity<UserRegistrationResModel> userRegistration(UserRegistrationReqModel request) {
+
+        validationUtils.bruteForceProtection(request.getEmail(), AppConfig.REGISTRATION_LIMIT);
 
         // Validate the incoming request and email
         validationUtils.userValidateRequest(request);
@@ -89,8 +95,17 @@ public class UserRegistrationServiceImpl {
             );
         }
 
-        // TODO: Push user profile to the message broker using gRPC or Kafka
-        messageBrokerManager.pushProfileToProfileMicroMServiceMQ(request);
+        UsersDatabaseModel profile = saveResult.getUsers();
+        grpcClientService.grpcAddDetailsAsync(
+                profile.getUuid().toString(),
+                request.getDetails().getFirst_name(),
+                request.getDetails().getLast_name(),
+                request.getDetails().getPhone_number(),
+                request.getDetails().getDate_of_birth(),
+                request.getDetails().getGender(),
+                request.getDetails().getBio()
+
+        );
 
         // Return the response with a 201 status code (CREATED) and user details
         return ResponseEntity.status(HttpStatus.CREATED).body(buildResponse(request, newUser));
