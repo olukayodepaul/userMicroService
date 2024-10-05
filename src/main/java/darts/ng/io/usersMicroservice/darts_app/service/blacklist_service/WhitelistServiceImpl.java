@@ -68,7 +68,7 @@ public class WhitelistServiceImpl {
             ipAddress = headerRequest.getRemoteAddr();
         }
 
-        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(jwtService.extractUUID(token))
+        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(UUID.fromString(jwtService.extractUUID(token)))
                 .orElseThrow(() -> new CustomRuntimeException(
                         new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_UUID),
                         HttpStatus.NOT_FOUND

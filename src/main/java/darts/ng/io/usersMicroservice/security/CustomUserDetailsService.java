@@ -21,7 +21,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserDatabaseRepo loginRepo;
     private final BCryptPasswordEncoder encoder;
 
-
     public CustomUserDetailsService(UserDatabaseRepo loginRepo) {
         this.loginRepo = loginRepo;
         this.encoder = new BCryptPasswordEncoder(12);
@@ -29,19 +28,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username){
-
         Optional<UsersDatabaseModel> loginModel = loginRepo.findByEmail(username);
-
         if(loginModel.isPresent()) {
-
             UsersDatabaseModel result = loginModel.get();
-
             return new User(
                     result.getEmail(),
                     encoder.encode(result.getPassword()),
                     Collections.emptyList()
             );
-
         }
 
         throw new CustomRuntimeException(

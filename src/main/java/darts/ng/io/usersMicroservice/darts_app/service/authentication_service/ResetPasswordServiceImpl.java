@@ -57,6 +57,7 @@ public class ResetPasswordServiceImpl {
         validationUtils.sanitizeEmail(request.getEmail());
         validationUtils.validateRequest(request);
         validationUtils.validatePasswordStrength(request.getNew_password());
+        validationUtils.bruteForceProtection(request.getEmail(), AppConfig.PASSWORD_RESET_LIMIT);
 
         // Check if the user exists
         UsersDatabaseModel existingUser = databaseRep.findByEmail(request.getEmail())
@@ -65,9 +66,11 @@ public class ResetPasswordServiceImpl {
                         HttpStatus.NOT_FOUND
                 ));
 
-        // Validate the user account's active and blacklist status
-        validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
+        validationUtils.validateAccountNotConfirm(existingUser.getIs_active());
+        validationUtils.validateAccountBlackListed(existingUser.getIs_blacklisted());
+        validationUtils.blackListExpiration(existingUser.getBlacklist_expire_at());
+        validationUtils.validateResetCode(request.getReset_code(), existingUser.getPassword_reset_code());
+        validationUtils.checkResetPasswordExpiration(existingUser.getPassword_reset_expiration());
 
         UsersDatabaseModel updateUser = updateUserPassword(existingUser, request.getNew_password());
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);

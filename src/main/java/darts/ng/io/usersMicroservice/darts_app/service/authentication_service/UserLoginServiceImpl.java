@@ -56,11 +56,13 @@ public class UserLoginServiceImpl {
         if (existingUser.getStatus()) {
 
             UserCacheModel existingUserInCache = existingUser.getUserDetails();
-            validationUtils.validateAccountStatus(existingUserInCache.getIs_active(), existingUserInCache.getIs_blacklisted());
-            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), utilitiesManager.convertStringToDateTime(existingUserInCache.getBlacklist_expire_at()));
-            validationUtils.validatePassword(existingUserInCache.getPassword(), request.getPassword());
 
-            String requestToken = jwtService.jwtToken(existingUserInCache.getId().toString(), existingUserInCache.getEmail(), existingUserInCache.getOrganisation_id().toString());
+            validationUtils.validateAccountNotConfirm(existingUserInCache.getIs_active());
+            validationUtils.validateAccountBlackListed(existingUserInCache.getIs_blacklisted());
+            validationUtils.blackListExpiration(utilitiesManager.convertStringToDateTime(existingUserInCache.getBlacklist_expire_at()));
+            validationUtils.validatePassword(request.getPassword(),existingUserInCache.getPassword());
+
+            String requestToken = jwtService.jwtToken(existingUserInCache.getUuid().toString(), existingUserInCache.getEmail(), existingUserInCache.getOrganisation_id().toString());
             return ResponseEntity.status(HttpStatus.OK).body(buildResponse(
                     existingUserInCache.getEmail(),
                     existingUserInCache.getRole(),
@@ -81,9 +83,10 @@ public class UserLoginServiceImpl {
                             HttpStatus.NOT_FOUND
                     ));
 
-            validationUtils.validateAccountStatus(findUser.getIs_active(), findUser.getIs_blacklisted());
-            validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), findUser.getBlacklist_expire_at());
-            validationUtils.validatePassword(findUser.getPassword(), request.getPassword());
+            validationUtils.validateAccountNotConfirm(findUser.getIs_active());
+            validationUtils.validateAccountBlackListed(findUser.getIs_blacklisted());
+            validationUtils.blackListExpiration(findUser.getBlacklist_expire_at());
+            validationUtils.validatePassword(request.getPassword(),findUser.getPassword());
 
             String requestToken = jwtService.jwtToken(findUser.getId().toString(), findUser.getEmail(), findUser.getOrganisation_id().toString());
 
@@ -112,7 +115,7 @@ public class UserLoginServiceImpl {
     {
         return new UserLoginResModel(
                 true,
-                "Confirmation link and token are generated. Kindly send to user email for confirmation.",
+                "Login Successfully",
                 new UserLoginResModel.Details(
                         email,
                         role,

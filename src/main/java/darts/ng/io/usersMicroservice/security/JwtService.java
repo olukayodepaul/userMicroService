@@ -52,9 +52,9 @@ public class JwtService {
     }
 
     // Generate token with additional claims
-    public String generateToken(Map<String, Object> extraClaims, String userId, String email, String organisationId) {
+    public String generateToken(Map<String, Object> extraClaims, String uuid, String email, String organisationId) {
 
-        extraClaims.put("uuid", userId);
+        extraClaims.put("uuid", uuid);
         extraClaims.put("email", email);
         extraClaims.put("organisationId", organisationId);
 
@@ -116,13 +116,13 @@ public class JwtService {
     }
 
     // Method to extract userId from the token
-    public UUID extractUUID(String token) {
+    public String extractUUID(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(extractTokenFromHeader(token))
                 .getPayload();
-        return claims.get("uuid", UUID.class);
+        return claims.get("uuid", String.class);
     }
 
     // Method to extract user email from the token
@@ -130,7 +130,7 @@ public class JwtService {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(extractTokenFromHeader(token))
                 .getPayload();
         return claims.get("email", String.class);
     }
@@ -140,19 +140,23 @@ public class JwtService {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(extractTokenFromHeader(token))
                 .getPayload();
         return claims.get("organisationId", String.class);
     }
 
     // Create Authentication from the token
     public Authentication getAuthentication(String token) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(extractUsername(token));
+        UserDetails userDetails = userDetailsService.loadUserByUsername(extractUsername(extractTokenFromHeader(token)));
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
-    public String jwtToken(String Id, String email, String organisationId) {
-        return generateToken(new HashMap<>(), Id, email, organisationId);
+    public String jwtToken(String uiid, String email, String organisationId) {
+        return generateToken(new HashMap<>(), uiid, email, organisationId);
+    }
+
+    private String extractTokenFromHeader(String authHeader) {
+        return authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
     }
 
 }

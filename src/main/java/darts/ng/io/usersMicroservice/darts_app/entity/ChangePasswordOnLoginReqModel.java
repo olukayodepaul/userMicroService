@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChangePasswordOnLoginReqModel {
-    private Integer user_id;
     private String old_password;
     private String new_password;
     private String confirm_password;

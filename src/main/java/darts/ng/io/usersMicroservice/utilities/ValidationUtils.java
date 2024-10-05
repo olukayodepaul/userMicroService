@@ -30,7 +30,7 @@ public class ValidationUtils {
     public void sanitizeEmail(String email) {
         if (!emailValidator.isValid(email)) {
             throw new CustomRuntimeException(
-                    new ErrorHandler(false, "error","Invalid email format"),
+                    new ErrorHandler(false, "error", "Invalid email format"),
                     HttpStatus.BAD_REQUEST
             );
         }
@@ -40,7 +40,7 @@ public class ValidationUtils {
 
         if (password.length() < 8) {
             throw new CustomRuntimeException(
-                    new ErrorHandler(false,"error", "Password must be at least 8 characters long."),
+                    new ErrorHandler(false, "error", "Password must be at least 8 characters long."),
                     HttpStatus.BAD_REQUEST
             );
         }
@@ -77,7 +77,7 @@ public class ValidationUtils {
     public void isAccountStatusValidated(Boolean condition, String message) {
         if (condition) {
             throw new CustomRuntimeException(
-                    new ErrorHandler(false, "error", message),
+                    new ErrorHandler(false, "message", message),
                     HttpStatus.BAD_REQUEST
             );
         }
@@ -103,24 +103,31 @@ public class ValidationUtils {
     }
 
     public void validateAccountStatus(Boolean activeStatus, Boolean blackListStatus) {
-        isAccountStatusValidated(!activeStatus, "Email not confirmed. Please confirm your email before proceeding.");
+        isAccountStatusValidated(activeStatus, "Account already confirm. Please proceeding to login.");
         isAccountStatusValidated(blackListStatus, "Account is blacklisted. Please contact customer support.");
     }
 
     public void validateAccountNotConfirm(Boolean activeStatus) {
-        isAccountStatusValidated(!activeStatus, "Email not confirmed. Please confirm your email before proceeding.");
+        if(!activeStatus){
+            throw new CustomRuntimeException(new ErrorHandler(false, "Email Not Confirm",  "Please confirm your email before proceeding."), HttpStatus.BAD_REQUEST);
+        }
     }
 
-    public void validateBlackListExpirationDate(LocalDateTime currentDate, LocalDateTime expirationDate)
-    {
-        if (currentDate.isBefore(expirationDate)) {
-            throw new CustomRuntimeException(
-                    new ErrorHandler(
-                            false,
-                            "Expiration limit exceeded",
-                            "Blacklist expire limit not exceeded."),
-                    HttpStatus.GONE
-            );
+    public void validateAccountBlackListed(Boolean activeStatus) {
+        if(activeStatus){
+            throw new CustomRuntimeException(new ErrorHandler(false, "Account Black listed",  "Account on suspension"), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public void emailConfirmationExpiration(LocalDateTime expirationDate) {
+        if(LocalDateTime.now().isAfter(expirationDate)) {
+            throw new CustomRuntimeException(new ErrorHandler(false, "Reset",  "Exceed email confirmation period, kindly reconfirm"), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public void blackListExpiration(LocalDateTime expirationDate) {
+        if(LocalDateTime.now().isBefore(expirationDate)){
+            throw new CustomRuntimeException(new ErrorHandler(false, "Black listed",  "Account on suspension. Suspension will be lifted "+ expirationDate), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -150,8 +157,10 @@ public class ValidationUtils {
         }
     }
 
-    public void validateMatchPattern(String oldPassword, String newPassword, String comment){
-        if(!oldPassword.matches(newPassword)){
+    //old password is the one from the db (encrypted)
+    //new password is the one from the request (none encrypted)
+    public void validateMatchPattern(String oldPassword, String newPassword, String comment) {
+        if (!oldPassword.matches(newPassword)) {
             throw new CustomRuntimeException(
                     new ErrorHandler(
                             false,
@@ -162,8 +171,35 @@ public class ValidationUtils {
         }
     }
 
-    public void validatePassword(String oldPassword, String newPassword) {
-        if (encoder.matches(oldPassword, newPassword)) {
+    public void validateConfirmationCodeAndLink(String confirmationCodeOrLink, String confirmationCode, String confirmationLink) {
+        if (!encoder.matches(confirmationCodeOrLink, confirmationCode) && !confirmationCodeOrLink.equalsIgnoreCase(confirmationLink)) {
+            throw new CustomRuntimeException(
+                    new ErrorHandler(false, "validation check", "Invalid confirmation code or link. Please try again."),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    public void validateResetCode(String plainTextPassword, String encodedPassword) {
+        if (!encoder.matches(plainTextPassword, encodedPassword)) {
+            throw new CustomRuntimeException(
+                    new ErrorHandler(
+                            false,
+                            "Reset",
+                            "Invalid reset code, please provide valid reset code"),
+                    HttpStatus.GONE
+            );
+        }
+    }
+
+    public void checkResetPasswordExpiration(LocalDateTime expirationDate) {
+        if(LocalDateTime.now().isAfter(expirationDate)) {
+            throw new CustomRuntimeException(new ErrorHandler(false, "Reset",  "Reset code exceed expected duration."), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public void validatePassword(String plainTextPassword, String encodedPassword) {
+        if (!encoder.matches(plainTextPassword, encodedPassword)) {
             throw new CustomRuntimeException(
                     new ErrorHandler(
                             false,
@@ -174,13 +210,25 @@ public class ValidationUtils {
         }
     }
 
-    public String plainTextEncryption(String password){
+    public void validateOldWithNewPassword(String plainTextPassword, String encodedPassword) {
+        if (!encoder.matches(plainTextPassword, encodedPassword)) {
+            throw new CustomRuntimeException(
+                    new ErrorHandler(
+                            false,
+                            "Password not match",
+                            "new password do not match the old password"),
+                    HttpStatus.GONE
+            );
+        }
+    }
+
+    public String plainTextEncryption(String password) {
         return encoder.encode(password);
     }
 
     //brute for attack limit
-    public void bruteForceProtection(String email, String types){
-        if(rateLimitService.isRateLimited(email, types)){
+    public void bruteForceProtection(String email, String types) {
+        if (rateLimitService.isRateLimited(email, types)) {
             throw new CustomRuntimeException(
                     new ErrorHandler(false,
                             "Rate limit exceeded",

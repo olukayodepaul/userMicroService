@@ -74,14 +74,14 @@ public class AddBlacklistEntryServiceImpl {
         validationUtils.validateRequestFromBlackList(bodyRequest);
         utilitiesManager.isValidNumber(bodyRequest.getPeriod_in_second());
 
-        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(jwtService.extractUUID(token))
+        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(UUID.fromString(jwtService.extractUUID(token)))
                 .orElseThrow(() -> new CustomRuntimeException(
                         new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_EMAIL),
                         HttpStatus.NOT_FOUND
                 ));
 
         validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
+//        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
 
         UsersDatabaseModel updateUser = updateUser(existingUser, bodyRequest.getPeriod_in_second());
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);

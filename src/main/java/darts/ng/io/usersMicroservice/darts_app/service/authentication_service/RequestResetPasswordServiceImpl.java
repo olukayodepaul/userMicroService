@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
 
 
 @Service
@@ -46,9 +45,15 @@ public class RequestResetPasswordServiceImpl {
                         HttpStatus.NOT_FOUND
                 ));
 
-        validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
-        UsersDatabaseModel updateUser = requestPassword(existingUser);
+
+        validationUtils.validateAccountNotConfirm(existingUser.getIs_active());
+        validationUtils.validateAccountBlackListed(existingUser.getIs_blacklisted());
+        validationUtils.blackListExpiration(existingUser.getBlacklist_expire_at());
+
+        String plainText  = utilitiesManager.SixRandomDigitNumberGenerator().toString();
+        String encodedPassword = validationUtils.plainTextEncryption(plainText);
+
+        UsersDatabaseModel updateUser = requestPassword(existingUser, encodedPassword);
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
 
         if (!saveResult.getStatus()) {
@@ -58,13 +63,12 @@ public class RequestResetPasswordServiceImpl {
             );
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(buildResponse(saveResult));
+        return ResponseEntity.status(HttpStatus.CREATED).body(buildResponse(saveResult, plainText));
 
     }
 
-    private UsersDatabaseModel requestPassword(UsersDatabaseModel user) {
-        String plainPassword  = utilitiesManager.SixRandomDigitNumberGenerator().toString();
-        String encodedPassword = validationUtils.plainTextEncryption(plainPassword);
+    private UsersDatabaseModel requestPassword(UsersDatabaseModel user, String encodePassword) {
+
         return UsersDatabaseModel.builder()
                 .id(user.getId())
                 .uuid(user.getUuid())
@@ -72,8 +76,8 @@ public class RequestResetPasswordServiceImpl {
                 .password(user.getPassword())
                 .role(user.getRole())
                 .organisation_id(user.getOrganisation_id())
-                .password_reset_code(encodedPassword)
-                .password_reset_expiration(utilitiesManager.expiryDatePeriod(AppConfig.PASSWORD_EXPIRATION))
+                .password_reset_code(encodePassword)
+                .password_reset_expiration(utilitiesManager.expiryDatePeriod(AppConfig.PASSWORD_EXPIRATION_DURATION))
                 .confirmation_link(user.getConfirmation_link())
                 .confirmation_code(user.getConfirmation_code())
                 .confirmation_token_expiration(user.getConfirmation_token_expiration())
@@ -91,14 +95,13 @@ public class RequestResetPasswordServiceImpl {
      * @param updatedRecord The updated user record after processing.
      * @return UserRegistrationEmailConfirmationResModel containing the confirmation details.
      */
-    private RequestResetPasswordResModel buildResponse(UserRecordMapper updatedRecord) {
+    private RequestResetPasswordResModel buildResponse(UserRecordMapper updatedRecord, String noneEncodedPassword) {
         return new RequestResetPasswordResModel(
                 true,
-                "Confirmation link and token are generated. Kindly send to user email for confirmation.",
+                "Request for Password reset successful",
                 new RequestResetPasswordResModel.Details(
                         updatedRecord.getUsers().getEmail(),
-                        updatedRecord.getUsers().getConfirmation_code(),
-                        updatedRecord.getUsers().getConfirmation_link(),
+                        noneEncodedPassword,
                         updatedRecord.getUsers().getUpdated_at()
                 )
         );

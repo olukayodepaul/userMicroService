@@ -1,7 +1,7 @@
 package darts.ng.io.usersMicroservice.darts_app.controller;
 
 import darts.ng.io.usersMicroservice.darts_app.entity.*;
-import darts.ng.io.usersMicroservice.darts_app.service.user_account_service.SendRegistrationConfirmationEmailToUserServiceImpl;
+import darts.ng.io.usersMicroservice.darts_app.service.user_account_service.SendUserConfirmEmailServiceImpl;
 import darts.ng.io.usersMicroservice.darts_app.service.user_account_service.UserRegistrationConfirmationServiceImpl;
 import darts.ng.io.usersMicroservice.darts_app.service.user_account_service.UserRegistrationServiceImpl;
 import darts.ng.io.usersMicroservice.utilities.ResponseHandler;
@@ -16,12 +16,12 @@ import org.springframework.http.ResponseEntity;
 public class AccountController {
 
     private final UserRegistrationServiceImpl userRegistrationService;
-    private final SendRegistrationConfirmationEmailToUserServiceImpl userRegistrationEmailConfirmationService;
+    private final SendUserConfirmEmailServiceImpl userRegistrationEmailConfirmationService;
     private final UserRegistrationConfirmationServiceImpl userRegistrationConfirmationService;
 
     public AccountController(
             UserRegistrationServiceImpl userRegistrationService,
-            SendRegistrationConfirmationEmailToUserServiceImpl userRegistrationEmailConfirmationService,
+            SendUserConfirmEmailServiceImpl userRegistrationEmailConfirmationService,
             UserRegistrationConfirmationServiceImpl userRegistrationConfirmationService)
     {
         this.userRegistrationService = userRegistrationService;
@@ -35,7 +35,9 @@ public class AccountController {
     }
 
     @PostMapping("/send-confirmation-email")
-    public ResponseEntity<SendRegistrationConfirmationEmailToUserResModel> sendConfirmationEmail(@RequestBody SendRegistrationConfirmationEmailToUserReqModel request) {
+    public ResponseEntity<SendRegistrationConfirmationEmailToUserResModel> sendConfirmationEmail(
+            @RequestBody SendUserConfirmEmailReqModel request
+    ) {
         return userRegistrationEmailConfirmationService.sendConfirmationEmail(request);
     }
 

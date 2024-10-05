@@ -30,6 +30,8 @@ public class JwtFilter extends OncePerRequestFilter {
         OPEN_ENDPOINTS.add("/api/account/send-confirmation-email");
         OPEN_ENDPOINTS.add("/api/account/confirm-email");
         OPEN_ENDPOINTS.add("/api/auth/login");
+        OPEN_ENDPOINTS.add("/api/auth/request-password-reset");
+        OPEN_ENDPOINTS.add("/api/auth/reset-password");
     }
 
     public JwtFilter(JwtService jwtService, ApplicationContext context) {
@@ -40,7 +42,6 @@ public class JwtFilter extends OncePerRequestFilter {
     private static final int UNAUTHORIZED_STATUS = HttpServletResponse.SC_UNAUTHORIZED;
     private static final String MISSING_AUTH_HEADER_ERROR = "{\"status\":false,\"error\":\"Missing Authorization header\"}";
     private static final String INVALID_AUTH_HEADER_FORMAT_ERROR = "{\"status\":false,\"error\":\"Invalid Authorization header format\"}";
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

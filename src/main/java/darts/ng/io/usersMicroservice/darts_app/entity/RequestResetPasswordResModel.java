@@ -24,7 +24,6 @@ public class RequestResetPasswordResModel {
     @AllArgsConstructor
     public static class Details {
         private String email;
-        private String user_id;
         private String reset_code;
         private LocalDateTime created_at;
     }

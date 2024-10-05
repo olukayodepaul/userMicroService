@@ -10,5 +10,5 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 
 public interface UserBlackListedRepo extends JpaRepository<UserBlackListedDbModel, Long> {
-    Optional<Page<UserBlackListedDbModel>> findByUuid(UUID Uuid, Pageable pageable);
+    Optional<Page<UserBlackListedDbModel>> findByUuid(String Uuid, Pageable pageable);
 }

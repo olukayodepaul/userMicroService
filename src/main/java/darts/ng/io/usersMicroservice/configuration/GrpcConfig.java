@@ -3,7 +3,6 @@ package darts.ng.io.usersMicroservice.configuration;
 import darts.ng.io.usersMicroservice.darts_app.grpc.DetailServiceImp;
 import darts.ng.io.usersMicroservice.security.JwtAuthInterceptor;
 import io.grpc.*;
-import io.grpc.netty.NettyServerBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,7 +28,6 @@ public class GrpcConfig {
                 .build()
                 .start();
     }
-
 
     // gRPC Client setup to communicate with other gRPC servers
     @Bean

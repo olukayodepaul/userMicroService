@@ -1,7 +1,7 @@
 package darts.ng.io.usersMicroservice.darts_app.service.user_account_service;
 
 import darts.ng.io.usersMicroservice.darts_app.entity.SendRegistrationConfirmationEmailToUserResModel;
-import darts.ng.io.usersMicroservice.darts_app.entity.SendRegistrationConfirmationEmailToUserReqModel;
+import darts.ng.io.usersMicroservice.darts_app.entity.SendUserConfirmEmailReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
@@ -19,9 +19,9 @@ import java.time.LocalDateTime;
  * It validates user accounts and sends confirmation tokens via email.
  */
 @Service
-public class SendRegistrationConfirmationEmailToUserServiceImpl {
+public class SendUserConfirmEmailServiceImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(SendRegistrationConfirmationEmailToUserServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(SendUserConfirmEmailServiceImpl.class);
 
     private final UserDatabaseRepo updateRepo;
     private final UtilitiesManager utilitiesManager;
@@ -36,7 +36,7 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
      * @param validationUtils     Utility class for validating emails and user statuses.
      * @param dbSaveUpdatedService Service for saving and updating user records in the database.
      */
-    public SendRegistrationConfirmationEmailToUserServiceImpl(
+    public SendUserConfirmEmailServiceImpl(
             UserDatabaseRepo updateRepo,
             UtilitiesManager utilitiesManager,
             ValidationUtils validationUtils,
@@ -55,9 +55,10 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
      * @return ResponseEntity containing the result of the confirmation process.
      * @throws CustomRuntimeException if validation fails or the user account is invalid.
      */
-    public ResponseEntity<SendRegistrationConfirmationEmailToUserResModel> sendConfirmationEmail(SendRegistrationConfirmationEmailToUserReqModel request) {
+    public ResponseEntity<SendRegistrationConfirmationEmailToUserResModel> sendConfirmationEmail(SendUserConfirmEmailReqModel request) {
 
         // Validate email format
+        validationUtils.bruteForceProtection(request.getEmail(), AppConfig.SEND_EMAIL_CONFIRM_LIMIT);
         validationUtils.sanitizeEmail(request.getEmail());
 
         // Check if the user exists
@@ -68,12 +69,12 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
                 ));
 
 
-        // Validate the user account's active and blacklist status
         validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
+        validationUtils.blackListExpiration(existingUser.getBlacklist_expire_at());
 
         // Update the user account with new confirmation token and link
-        UsersDatabaseModel updateUser = updateUser(existingUser);
+        String confirmCode = utilitiesManager.SixRandomDigitNumberGenerator().toString();
+        UsersDatabaseModel updateUser = updateUser(existingUser, confirmCode);
 
         // Save the updated user record
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
@@ -87,7 +88,7 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
         }
 
         // Build the response with the updated record and return
-        return ResponseEntity.status(HttpStatus.OK).body(buildResponse(saveResult));
+        return ResponseEntity.status(HttpStatus.OK).body(buildResponse(saveResult, confirmCode));
     }
 
     /**
@@ -96,7 +97,8 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
      * @param request The user data to be updated.
      * @return UsersDatabaseModel containing updated user details.
      */
-    private UsersDatabaseModel updateUser(UsersDatabaseModel request) {
+
+    private UsersDatabaseModel updateUser(UsersDatabaseModel request, String confirmCode) {
         LocalDateTime dateTime = LocalDateTime.now();
         return UsersDatabaseModel.builder()
                 .id(request.getId())
@@ -108,11 +110,11 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
                 .password_reset_code(request.getPassword_reset_code())
                 .password_reset_expiration(request.getPassword_reset_expiration())
                 .confirmation_link(utilitiesManager.generateVerificationString())
-                .confirmation_code(utilitiesManager.SixRandomDigitNumberGenerator().toString())
+                .confirmation_code(validationUtils.plainTextEncryption(confirmCode))
                 .confirmation_token_expiration(utilitiesManager.expiryDatePeriod(AppConfig.EMAIL_CONFIRMATION_EXPIRATION))
                 .is_active(request.getIs_active())
                 .is_blacklisted(request.getIs_blacklisted())
-                .password_reset_expiration(request.getPassword_reset_expiration())
+                .blacklist_expire_at(request.getBlacklist_expire_at())
                 .created_at(request.getCreated_at())
                 .updated_at(dateTime)
                 .build();
@@ -124,13 +126,13 @@ public class SendRegistrationConfirmationEmailToUserServiceImpl {
      * @param updatedRecord The updated user record after processing.
      * @return UserRegistrationEmailConfirmationResModel containing the confirmation details.
      */
-    private SendRegistrationConfirmationEmailToUserResModel buildResponse(UserRecordMapper updatedRecord) {
+    private SendRegistrationConfirmationEmailToUserResModel buildResponse(UserRecordMapper updatedRecord , String confirmCode) {
         return new SendRegistrationConfirmationEmailToUserResModel(
                 true,
                 "Confirmation link and token are generated. Kindly send to user email for confirmation.",
                 new SendRegistrationConfirmationEmailToUserResModel.Details(
                         updatedRecord.getUsers().getEmail(),
-                        updatedRecord.getUsers().getConfirmation_code(),
+                        confirmCode,
                         updatedRecord.getUsers().getConfirmation_link(),
                         updatedRecord.getUsers().getUpdated_at()
                 )

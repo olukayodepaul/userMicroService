@@ -4,9 +4,10 @@ import darts.ng.io.usersMicroservice.darts_app.entity.UserRegistrationResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.UserRegistrationReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
-import darts.ng.io.usersMicroservice.darts_app.grpc.GrpcClientService;
-import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
+import darts.ng.io.usersMicroservice.darts_app.grpc.client.ProfileDetailsController;
+import darts.ng.io.usersMicroservice.darts_app.grpc.grpc_model.ProfileDetailsModel;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
+import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,35 +24,36 @@ public class UserRegistrationServiceImpl {
     private static final Logger logger = LoggerFactory.getLogger(UserRegistrationServiceImpl.class);
 
     private final UserDatabaseRepo registrationRepo;
-    private final MessageBrokerManager messageBrokerManager;
     private final UtilitiesManager utilitiesManager;
     private final ValidationUtils validationUtils;
     private final DbSaveUpdatedService dbSaveUpdatedService;
-    private final GrpcClientService grpcClientService;
+    private final ProfileDetailsController grpcClientController;
+    private final JwtService jwtService;
+
 
     /**
      * Constructor for UserRegistrationServiceImpl.
      *
      * @param registrationRepo      Repository for user data operations.
-     * @param messageBrokerManager  Message broker for communication with other microservices.
+     * @param grpcClientController  Message broker for communication with other microservices.
      * @param utilitiesManager      Utility class for general functions like UUID generation.
      * @param validationUtils       Utility class for validating input data like email and password.
      * @param dbSaveUpdatedService  Service for saving or updating user data in the database.
      */
     public UserRegistrationServiceImpl(
             UserDatabaseRepo registrationRepo,
-            MessageBrokerManager messageBrokerManager,
             UtilitiesManager utilitiesManager,
             ValidationUtils validationUtils,
             DbSaveUpdatedService dbSaveUpdatedService,
-            GrpcClientService grpcClientService
+            ProfileDetailsController grpcClientController,
+            JwtService jwtService
     ) {
         this.registrationRepo = registrationRepo;
-        this.messageBrokerManager = messageBrokerManager;
         this.utilitiesManager = utilitiesManager;
         this.validationUtils = validationUtils;
         this.dbSaveUpdatedService = dbSaveUpdatedService;
-        this.grpcClientService = grpcClientService;
+        this.grpcClientController = grpcClientController;
+        this.jwtService = jwtService;
     }
 
     /**
@@ -71,8 +73,6 @@ public class UserRegistrationServiceImpl {
 
         // Check if the email is already registered
         Optional<UsersDatabaseModel> dbExistingUser = registrationRepo.findByEmail(request.getEmail());
-
-        // TODO: Implement IP tracking for brute force attack protection in the future
 
         if (dbExistingUser.isPresent()) {
             throw new CustomRuntimeException(
@@ -96,15 +96,16 @@ public class UserRegistrationServiceImpl {
         }
 
         UsersDatabaseModel profile = saveResult.getUsers();
-        grpcClientService.grpcAddDetailsAsync(
-                profile.getUuid().toString(),
-                request.getDetails().getFirst_name(),
-                request.getDetails().getLast_name(),
-                request.getDetails().getPhone_number(),
-                request.getDetails().getDate_of_birth(),
-                request.getDetails().getGender(),
-                request.getDetails().getBio()
 
+        String buildToken = jwtService.jwtToken(profile.getUuid().toString(), request.getEmail(),  request.getOrganisation_id().toString());
+
+        //todo: get the grpc response, if not successful, then call the kafka service.
+        grpcClientController.sendProfileDetailToGrpcProfileMS(
+                new ProfileDetailsModel(
+                        profile.getUuid().toString(),
+                        buildToken,
+                        request.getDetails()
+                )
         );
 
         // Return the response with a 201 status code (CREATED) and user details
@@ -135,6 +136,7 @@ public class UserRegistrationServiceImpl {
                 .confirmation_token_expiration(initialDate)
                 .is_active(false)
                 .is_blacklisted(false)
+                .blacklist_expire_at(initialDate)
                 .created_at(dateTime)
                 .updated_at(dateTime)
                 .build();

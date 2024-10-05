@@ -18,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-
+import java.util.UUID;
 
 
 @Service
@@ -52,19 +52,21 @@ public class ChangePasswordOnLoginServiceImpl {
 
     public ResponseEntity<ChangePasswordOnLoginResModel> changePasswordOnLogin(ChangePasswordOnLoginReqModel request, String token) {
 
+        validationUtils.bruteForceProtection(jwtService.extractEmail(token), AppConfig.CHANGE_PASSWORD_ON_LOGIN_LIMIT);
         validationUtils.validateMatchPattern(request.getNew_password(), request.getConfirm_password(), AppConfig.CHANGE_PASSWORD_NOT_MATCH);
         validationUtils.validatePasswordStrength(request.getNew_password());
 
         // Check if the user exists
-        UsersDatabaseModel existingUser = databaseRep.findByUuid(jwtService.extractUUID(token))
+        UsersDatabaseModel existingUser = databaseRep.findByEmail(jwtService.extractEmail(token))
                 .orElseThrow(() -> new CustomRuntimeException(
                         new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_UUID),
                         HttpStatus.NOT_FOUND
                 ));
 
-        validationUtils.validatePassword(request.getConfirm_password(), existingUser.getPassword());
-        validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
+        validationUtils.validateAccountNotConfirm(existingUser.getIs_active());
+        validationUtils.validateAccountBlackListed(existingUser.getIs_blacklisted());
+        validationUtils.blackListExpiration(existingUser.getBlacklist_expire_at());
+        validationUtils.validateOldWithNewPassword(request.getOld_password(), existingUser.getPassword());
 
         UsersDatabaseModel updateUser = updatePassword(existingUser, request.getNew_password());
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);

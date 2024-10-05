@@ -45,6 +45,7 @@ public class UserRegistrationConfirmationServiceImpl {
 
         validationUtils.validateEmailConfirmationCode(request);
         validationUtils.sanitizeEmail(request.getEmail());
+        validationUtils.bruteForceProtection(request.getEmail(), AppConfig.CONFIRM_EMAIL_LIMIT);
 
         // Check if the user exists
         UsersDatabaseModel existingUser = updateRepo.findByEmail(request.getEmail())
@@ -53,17 +54,10 @@ public class UserRegistrationConfirmationServiceImpl {
                         HttpStatus.NOT_FOUND
                 ));
 
-
         validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
-
-        if (!existingUser.getConfirmation_code().equalsIgnoreCase(request.getConfirmation_code_link()) &&
-                !existingUser.getConfirmation_link().equalsIgnoreCase(request.getConfirmation_code_link())) {
-            throw new CustomRuntimeException(
-                    new ErrorHandler(false, "validation check", "Invalid confirmation code or link. Please try again."),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
+        validationUtils.emailConfirmationExpiration(existingUser.getConfirmation_token_expiration());
+        validationUtils.blackListExpiration(existingUser.getBlacklist_expire_at());
+        validationUtils.validateConfirmationCodeAndLink(request.getConfirmation_code_link(), existingUser.getConfirmation_code(), existingUser.getConfirmation_link());
 
         UsersDatabaseModel updateUser = updateUser(existingUser);
 
@@ -100,10 +94,10 @@ public class UserRegistrationConfirmationServiceImpl {
                 .password_reset_expiration(request.getPassword_reset_expiration())
                 .confirmation_link("")
                 .confirmation_code("")
-                .confirmation_token_expiration(initialDate)
-                .is_active(request.getIs_active())
+                .confirmation_token_expiration(request.getConfirmation_token_expiration())
+                .is_active(true)
                 .is_blacklisted(request.getIs_blacklisted())
-                .password_reset_expiration(request.getPassword_reset_expiration())
+                .blacklist_expire_at(request.getBlacklist_expire_at())
                 .created_at(request.getCreated_at())
                 .updated_at(dateTime)
                 .build();
