@@ -3,7 +3,9 @@ package darts.ng.io.usersMicroservice.darts_app.service.blacklist_service;
 import darts.ng.io.usersMicroservice.darts_app.entity.UserBlackListPaginationResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.UserBlackListedResponseModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserBlackListedDbModel;
+import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
+import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
@@ -23,13 +25,20 @@ public class GetBlacklistEntryServiceImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(GetBlacklistEntryServiceImpl.class);
     private final UserBlackListedRepo userBlackListedRepo;
+    private final UserDatabaseRepo userDatabaseRepo;
     private final JwtService jwtService;
     private final ValidationUtils validationUtils;
 
-    public GetBlacklistEntryServiceImpl(UserBlackListedRepo userBlackListedRepo, JwtService jwtService, ValidationUtils validationUtils) {
+    public GetBlacklistEntryServiceImpl(
+            UserBlackListedRepo userBlackListedRepo,
+            JwtService jwtService,
+            ValidationUtils validationUtils,
+            UserDatabaseRepo userDatabaseRepo
+    ) {
         this.userBlackListedRepo = userBlackListedRepo;
         this.jwtService = jwtService;
         this.validationUtils = validationUtils;
+        this.userDatabaseRepo = userDatabaseRepo;
     }
 
     /**
@@ -41,14 +50,30 @@ public class GetBlacklistEntryServiceImpl {
      * @param token  JWT token
      * @return Blacklist entries with pagination metadata
      */
-    public ResponseEntity<UserBlackListPaginationResModel> getBlackListEntry(Integer userId, int offset, Integer limit, String token) {
+    public ResponseEntity<UserBlackListPaginationResModel> getBlackListEntry(
+            Integer userId,
+            int offset,
+            Integer limit,
+            String token
+    ){
+
         validationUtils.tokenValidateRequest(token);
+
+        UsersDatabaseModel existingUser = userDatabaseRepo.findByEmail(jwtService.extractEmail(token))
+                .orElseThrow(() -> new CustomRuntimeException(
+                        new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_EMAIL),
+                        HttpStatus.NOT_FOUND
+                ));
+
+        validationUtils.bruteForceProtection(existingUser.getEmail(), AppConfig.GET_BLACK_LIST_LIMIT);
+
         limit = getValidLimit(limit);
 
         Pageable pageable = getPageable(offset, limit);
         Optional<Page<UserBlackListedDbModel>> result = userBlackListedRepo.findByUuid(jwtService.extractUUID(token), pageable);
 
         if (result.isPresent()) {
+
             Page<UserBlackListedDbModel> page = result.get();
             List<UserBlackListedResponseModel> responseList = mapBlacklistEntries(page.getContent());
 
@@ -59,10 +84,10 @@ public class GetBlacklistEntryServiceImpl {
 
         throw new CustomRuntimeException(
                 new ErrorHandler(false, "Error saving record into database", "Kindly visit the support team"),
-                HttpStatus.BAD_REQUEST);
+                HttpStatus.BAD_REQUEST
+        );
+
     }
-
-
 
     private int getValidLimit(Integer limit) {
         return limit == null ? 10 : Math.max(1, Math.min(limit, 100));

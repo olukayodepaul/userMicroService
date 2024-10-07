@@ -1,7 +1,6 @@
 package darts.ng.io.usersMicroservice.darts_app.service.blacklist_service;
 
 
-import darts.ng.io.usersMicroservice.darts_app.entity.AddBlacklistEntryResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.FetchUserDetailsCacheModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.WhitelistReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserBlackListedDbModel;
@@ -19,9 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -68,14 +65,13 @@ public class WhitelistServiceImpl {
             ipAddress = headerRequest.getRemoteAddr();
         }
 
-        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(UUID.fromString(jwtService.extractUUID(token)))
+        UsersDatabaseModel existingUser = userDatabaseRepo.findByEmail(jwtService.extractEmail(token))
                 .orElseThrow(() -> new CustomRuntimeException(
                         new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_UUID),
                         HttpStatus.NOT_FOUND
                 ));
 
         validationUtils.bruteForceProtection(existingUser.getEmail(), AppConfig.WHITE_LIST_LIMIT);
-
         validationUtils.validateAccountNotConfirm(existingUser.getIs_active());
         UsersDatabaseModel updateUser = updateUser(existingUser);
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
@@ -139,5 +135,6 @@ public class WhitelistServiceImpl {
                 .expiry_at(utilitiesManager.convertStringToDateTime("1900-01-01 00:00:00"))
                 .build();
     }
+
 }
 

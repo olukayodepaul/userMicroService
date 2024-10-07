@@ -98,10 +98,6 @@ public class ValidationUtils {
         validateField(request.getReason(), "Reason for blacklisting");
     }
 
-    public void passwordValidateRequest(UserLoginReqModel request) {
-        validateField(request.getPassword(), "Password");
-    }
-
     public void validateAccountStatus(Boolean activeStatus, Boolean blackListStatus) {
         isAccountStatusValidated(activeStatus, "Account already confirm. Please proceeding to login.");
         isAccountStatusValidated(blackListStatus, "Account is blacklisted. Please contact customer support.");

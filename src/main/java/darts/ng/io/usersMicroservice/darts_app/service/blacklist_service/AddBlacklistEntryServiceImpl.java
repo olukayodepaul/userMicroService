@@ -60,7 +60,10 @@ public class AddBlacklistEntryServiceImpl {
     }
 
 
-    public ResponseEntity<AddBlacklistEntryResModel> addBlacklistEntry(AddBlacklistEntryReqModel bodyRequest, HttpServletRequest headerRequest, String token
+    public ResponseEntity<AddBlacklistEntryResModel> addBlacklistEntry(
+            AddBlacklistEntryReqModel bodyRequest,
+            HttpServletRequest headerRequest,
+            String token
     ) {
 
         validationUtils.tokenValidateRequest(token);
@@ -74,31 +77,34 @@ public class AddBlacklistEntryServiceImpl {
         validationUtils.validateRequestFromBlackList(bodyRequest);
         utilitiesManager.isValidNumber(bodyRequest.getPeriod_in_second());
 
-        UsersDatabaseModel existingUser = userDatabaseRepo.findByUuid(UUID.fromString(jwtService.extractUUID(token)))
+        UsersDatabaseModel existingUser = userDatabaseRepo.findByEmail(jwtService.extractEmail(token))
                 .orElseThrow(() -> new CustomRuntimeException(
                         new ErrorHandler(false, AppConfig.KAY_ERROR, AppConfig.INVALID_EMAIL),
                         HttpStatus.NOT_FOUND
                 ));
 
-        validationUtils.validateAccountStatus(existingUser.getIs_active(), existingUser.getIs_blacklisted());
-//        validationUtils.validateBlackListExpirationDate(LocalDateTime.now(), existingUser.getBlacklist_expire_at());
+        validationUtils.validateAccountNotConfirm(existingUser.getIs_active());
+        validationUtils.validateAccountBlackListed(existingUser.getIs_blacklisted());
+        validationUtils.blackListExpiration(existingUser.getBlacklist_expire_at());
 
         UsersDatabaseModel updateUser = updateUser(existingUser, bodyRequest.getPeriod_in_second());
         UserRecordMapper saveResult = dbSaveUpdatedService.saveUpdatedUserRecord(updateUser);
 
         if (!saveResult.getStatus()) {
             throw new CustomRuntimeException(
-                    new ErrorHandler(false, "We can't confirm the user moment", saveResult.getError()),
+                    new ErrorHandler(false, "We can't confirm the user at the moment", saveResult.getError()),
                     HttpStatus.BAD_REQUEST
             );
         }
 
+        //testing deleting
         FetchUserDetailsCacheModel deleteCacheRecord = cacheService.deleteUserDetails(saveResult.getUsers().getEmail());
 
         //Todo: change this to kafka
         if (deleteCacheRecord.getStatus()) {
             messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", saveResult.getUsers().getEmail());
         }
+
 
         UserBlackListedDbModel newBlacklist = blackListTrail(saveResult.getUsers().getUuid(), bodyRequest.getReason(), bodyRequest.getPeriod_in_second(), ipAddress);
         UserBlackListedDbModel blackListTrailSaveResult = userBlackListedRepo.save(newBlacklist);
