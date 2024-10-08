@@ -26,13 +26,9 @@ public class AppConfig {
     public static final String GET_BLACK_LIST_LIMIT = "fetch_blacklist_rate_limit:";
     public static final String WHITE_LIST_LIMIT = "whitelist_rate_limit:";
 
-    //////////
-
-
-
-
     //Message
     public static final String CHANGE_PASSWORD_NOT_MATCH = "New password and confirm password dot not match";
+
 
 
 }

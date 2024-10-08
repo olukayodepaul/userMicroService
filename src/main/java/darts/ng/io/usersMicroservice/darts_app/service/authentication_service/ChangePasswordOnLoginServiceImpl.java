@@ -48,6 +48,9 @@ public class ChangePasswordOnLoginServiceImpl {
 
     public ResponseEntity<ChangePasswordOnLoginResModel> changePasswordOnLogin(ChangePasswordOnLoginReqModel request, String token) {
 
+        //add to token blacklisted
+//        cacheService.saveJWTBlackListedToken(jwtService.extractUUID(token), jwtService.extractTokenFromHeader(token));
+        cacheService.isTokenBlacklisted(jwtService.extractUUID(token), jwtService.extractTokenFromHeader(token));
         validationUtils.bruteForceProtection(jwtService.extractEmail(token), AppConfig.CHANGE_PASSWORD_ON_LOGIN_LIMIT);
         validationUtils.validateMatchPattern(request.getNew_password(), request.getConfirm_password(), AppConfig.CHANGE_PASSWORD_NOT_MATCH);
         validationUtils.validatePasswordStrength(request.getNew_password());

@@ -67,6 +67,7 @@ public class AddBlacklistEntryServiceImpl {
     ) {
 
         validationUtils.tokenValidateRequest(token);
+        cacheService.isTokenBlacklisted(jwtService.extractUUID(token), jwtService.extractTokenFromHeader(token));
 
         String ipAddress = headerRequest.getHeader("X-Forwarded-For");
 

@@ -29,16 +29,6 @@ public class GrpcConfig {
                 .start();
     }
 
-    // gRPC Client setup to communicate with other gRPC servers
-    @Bean
-    public ManagedChannel managedChannel() {
-        return ManagedChannelBuilder
-                .forAddress("localhost", 9095)
-                .usePlaintext()  // For testing, no TLS. Use secure communication in production
-                .keepAliveTime(30, TimeUnit.SECONDS)
-                .enableFullStreamDecompression()
-                .build();
-    }
 }
 
 

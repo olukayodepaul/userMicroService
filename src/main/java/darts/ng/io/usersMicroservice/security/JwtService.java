@@ -155,7 +155,7 @@ public class JwtService {
         return generateToken(new HashMap<>(), uiid, email, organisationId);
     }
 
-    private String extractTokenFromHeader(String authHeader) {
+    public String extractTokenFromHeader(String authHeader) {
         return authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
     }
 

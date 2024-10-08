@@ -58,6 +58,7 @@ public class WhitelistServiceImpl {
 
         validationUtils.tokenValidateRequest(token);
         validationUtils.reasonValidateRequest(request.getReason());
+        cacheService.isTokenBlacklisted(jwtService.extractUUID(token), jwtService.extractTokenFromHeader(token));
 
         String ipAddress = headerRequest.getHeader("X-Forwarded-For");
 

@@ -6,6 +6,7 @@ import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserBlackListedDbModel
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
+import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
 import darts.ng.io.usersMicroservice.security.JwtService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
@@ -28,17 +29,20 @@ public class GetBlacklistEntryServiceImpl {
     private final UserDatabaseRepo userDatabaseRepo;
     private final JwtService jwtService;
     private final ValidationUtils validationUtils;
+    private final UserRedisCacheRepo cacheService;
 
     public GetBlacklistEntryServiceImpl(
             UserBlackListedRepo userBlackListedRepo,
             JwtService jwtService,
             ValidationUtils validationUtils,
-            UserDatabaseRepo userDatabaseRepo
+            UserDatabaseRepo userDatabaseRepo,
+            UserRedisCacheRepo cacheService
     ) {
         this.userBlackListedRepo = userBlackListedRepo;
         this.jwtService = jwtService;
         this.validationUtils = validationUtils;
         this.userDatabaseRepo = userDatabaseRepo;
+        this.cacheService = cacheService;
     }
 
     /**
@@ -58,6 +62,7 @@ public class GetBlacklistEntryServiceImpl {
     ){
 
         validationUtils.tokenValidateRequest(token);
+        cacheService.isTokenBlacklisted(jwtService.extractUUID(token), jwtService.extractTokenFromHeader(token));
 
         UsersDatabaseModel existingUser = userDatabaseRepo.findByEmail(jwtService.extractEmail(token))
                 .orElseThrow(() -> new CustomRuntimeException(

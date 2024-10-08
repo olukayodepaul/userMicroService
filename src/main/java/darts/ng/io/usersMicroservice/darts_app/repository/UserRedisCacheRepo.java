@@ -4,12 +4,17 @@ package darts.ng.io.usersMicroservice.darts_app.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UserCacheModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.FetchUserDetailsCacheModel;
+import darts.ng.io.usersMicroservice.utilities.CustomRuntimeException;
+import darts.ng.io.usersMicroservice.utilities.ErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -117,5 +122,32 @@ public class UserRedisCacheRepo {
             return new FetchUserDetailsCacheModel(true, USER_NOT_AVAILABLE, e.getMessage(), new UserCacheModel());
         }
     }
+
+    //this is being update by the kafka service
+    public void saveJWTBlackListedToken(String uuid, String token) {
+            String subKey = "jwt_black_service/"+uuid;
+            redisTemplate.opsForList().leftPush(subKey, token);
+    }
+
+    public void isTokenBlacklisted(String uuid, String token) {
+        String subKey = "jwt_black_service/" + uuid;
+        List<Object> tokens = redisTemplate.opsForList().range(subKey, 0, -1);
+
+        // Convert tokens to string list
+        List<String> tokenList = tokens.stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
+
+        System.out.println(tokenList);
+        System.out.println(tokens);
+
+        if(tokenList.contains(token)){
+            throw new CustomRuntimeException(
+                    new ErrorHandler(false, "access token", "Access token blacklisted"),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
 
 }
