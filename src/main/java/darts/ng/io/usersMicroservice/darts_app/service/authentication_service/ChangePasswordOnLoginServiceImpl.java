@@ -8,7 +8,7 @@ import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
 import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
-import darts.ng.io.usersMicroservice.security.JwtService;
+import darts.ng.io.usersMicroservice.security.FilterService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ public class ChangePasswordOnLoginServiceImpl {
     private final BCryptPasswordEncoder encoder;
     private final UserRedisCacheRepo cacheService;
     private final MessageBrokerManager messageBrokerManager;
-    private final JwtService jwtService;
+    private final FilterService jwtService;
 
     public ChangePasswordOnLoginServiceImpl(
             UserDatabaseRepo databaseRep,
@@ -35,7 +35,7 @@ public class ChangePasswordOnLoginServiceImpl {
             DbSaveUpdatedService dbSaveUpdatedService,
             UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,
-            JwtService jwtService
+            FilterService jwtService
     ) {
         this.databaseRep = databaseRep;
         this.validationUtils = validationUtils;

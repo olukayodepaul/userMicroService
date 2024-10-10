@@ -135,6 +135,7 @@ public class ValidationUtils {
         validateField(reason, "Reason");
     }
 
+
     public void userValidateRequest(UserRegistrationReqModel request) {
         validateField(request.getPassword(), "Password");
         validateField(request.getRole(), "User Role");

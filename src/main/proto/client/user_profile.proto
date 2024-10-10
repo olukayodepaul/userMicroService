@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+//sending the client message syntax
+//localhost:50051 darts.ng.io.grpc.client.UserProfile/AddProfile
+
+
+//package through the endpoint is build
+option java_package = "darts.grpc.client";
+package grpc.details;
+
+//endpoint point to send the message through
+service UserProfile {
+  rpc AddProfile (Profile) returns (Response){};
+}
+
+//message to be sent
+message Profile {
+  string uuid = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string phone_number = 4;
+  string date_of_birth = 5;
+  string gender = 6;
+  string bio = 7;
+  string organisation_id = 8;
+}
+
+//response of the message send
+message Response {
+  bool status = 1;
+  string message = 2;
+}
+

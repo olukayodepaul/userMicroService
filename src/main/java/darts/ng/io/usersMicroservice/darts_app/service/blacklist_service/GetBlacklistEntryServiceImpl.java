@@ -7,7 +7,7 @@ import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
-import darts.ng.io.usersMicroservice.security.JwtService;
+import darts.ng.io.usersMicroservice.security.FilterService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +27,13 @@ public class GetBlacklistEntryServiceImpl {
     private static final Logger logger = LoggerFactory.getLogger(GetBlacklistEntryServiceImpl.class);
     private final UserBlackListedRepo userBlackListedRepo;
     private final UserDatabaseRepo userDatabaseRepo;
-    private final JwtService jwtService;
+    private final FilterService jwtService;
     private final ValidationUtils validationUtils;
     private final UserRedisCacheRepo cacheService;
 
     public GetBlacklistEntryServiceImpl(
             UserBlackListedRepo userBlackListedRepo,
-            JwtService jwtService,
+            FilterService jwtService,
             ValidationUtils validationUtils,
             UserDatabaseRepo userDatabaseRepo,
             UserRedisCacheRepo cacheService

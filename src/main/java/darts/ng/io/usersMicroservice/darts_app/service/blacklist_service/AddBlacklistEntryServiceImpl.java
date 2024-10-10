@@ -10,7 +10,7 @@ import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
-import darts.ng.io.usersMicroservice.security.JwtService;
+import darts.ng.io.usersMicroservice.security.FilterService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -20,7 +20,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -31,7 +30,7 @@ public class AddBlacklistEntryServiceImpl {
     private static final Logger logger = LoggerFactory.getLogger(AddBlacklistEntryServiceImpl.class);
     private final UserDatabaseRepo userDatabaseRepo;
     private final UtilitiesManager utilitiesManager;
-    private final JwtService jwtService;
+    private final FilterService jwtService;
     private final ValidationUtils validationUtils;
     private final DbSaveUpdatedService dbSaveUpdatedService;
     private final UserBlackListedRepo userBlackListedRepo;
@@ -44,7 +43,7 @@ public class AddBlacklistEntryServiceImpl {
             UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,
             UtilitiesManager utilitiesManager,
-            JwtService jwtService,
+            FilterService jwtService,
             ValidationUtils validationUtils,
             DbSaveUpdatedService dbSaveUpdatedService,
             UserBlackListedRepo userBlackListedRepo
@@ -105,7 +104,6 @@ public class AddBlacklistEntryServiceImpl {
         if (deleteCacheRecord.getStatus()) {
             messageBrokerManager.deleteUserDetailsFromCacheMQ("delete", saveResult.getUsers().getEmail());
         }
-
 
         UserBlackListedDbModel newBlacklist = blackListTrail(saveResult.getUsers().getUuid(), bodyRequest.getReason(), bodyRequest.getPeriod_in_second(), ipAddress);
         UserBlackListedDbModel blackListTrailSaveResult = userBlackListedRepo.save(newBlacklist);

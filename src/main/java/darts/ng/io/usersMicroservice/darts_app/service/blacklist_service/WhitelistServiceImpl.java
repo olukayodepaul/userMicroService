@@ -10,7 +10,7 @@ import darts.ng.io.usersMicroservice.darts_app.kafka.MessageBrokerManager;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserBlackListedRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserRedisCacheRepo;
-import darts.ng.io.usersMicroservice.security.JwtService;
+import darts.ng.io.usersMicroservice.security.FilterService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -29,7 +29,7 @@ public class WhitelistServiceImpl {
     private final UserRedisCacheRepo cacheService;
     private final MessageBrokerManager messageBrokerManager;
     private final UtilitiesManager utilitiesManager;
-    private final JwtService jwtService;
+    private final FilterService jwtService;
     private final ValidationUtils validationUtils;
     private final DbSaveUpdatedService dbSaveUpdatedService;
     private final UserBlackListedRepo userBlackListedRepo;
@@ -39,7 +39,7 @@ public class WhitelistServiceImpl {
             UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,
             UtilitiesManager utilitiesManager,
-            JwtService jwtService,
+            FilterService jwtService,
             ValidationUtils validationUtils,
             DbSaveUpdatedService dbSaveUpdatedService,
             UserBlackListedRepo userBlackListedRepo

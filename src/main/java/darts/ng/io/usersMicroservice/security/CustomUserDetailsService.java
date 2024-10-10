@@ -27,8 +27,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username){
-        Optional<UsersDatabaseModel> loginModel = loginRepo.findByEmail(username);
+    public UserDetails loadUserByUsername(String email){
+        Optional<UsersDatabaseModel> loginModel = loginRepo.findByEmail(email);
         if(loginModel.isPresent()) {
             UsersDatabaseModel result = loginModel.get();
             return new User(

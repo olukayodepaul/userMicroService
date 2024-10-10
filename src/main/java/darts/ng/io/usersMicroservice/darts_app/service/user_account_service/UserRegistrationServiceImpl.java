@@ -4,10 +4,9 @@ import darts.ng.io.usersMicroservice.darts_app.entity.UserRegistrationResModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.UserRegistrationReqModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.dao.UsersDatabaseModel;
 import darts.ng.io.usersMicroservice.darts_app.entity.mapper.UserRecordMapper;
-import darts.ng.io.usersMicroservice.darts_app.grpc.client.ProfileDetailsController;
-import darts.ng.io.usersMicroservice.darts_app.grpc.grpc_model.ProfileDetailsModel;
+import darts.ng.io.usersMicroservice.darts_app.grpc.client.GrpcUserProfileClientImpl;
 import darts.ng.io.usersMicroservice.darts_app.repository.UserDatabaseRepo;
-import darts.ng.io.usersMicroservice.security.JwtService;
+import darts.ng.io.usersMicroservice.security.FilterService;
 import darts.ng.io.usersMicroservice.utilities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,15 +26,13 @@ public class UserRegistrationServiceImpl {
     private final UtilitiesManager utilitiesManager;
     private final ValidationUtils validationUtils;
     private final DbSaveUpdatedService dbSaveUpdatedService;
-    private final ProfileDetailsController grpcClientController;
-    private final JwtService jwtService;
-
+    private final FilterService jwtService;
+    private final GrpcUserProfileClientImpl grpcUserProfileClient;
 
     /**
      * Constructor for UserRegistrationServiceImpl.
      *
      * @param registrationRepo      Repository for user data operations.
-     * @param grpcClientController  Message broker for communication with other microservices.
      * @param utilitiesManager      Utility class for general functions like UUID generation.
      * @param validationUtils       Utility class for validating input data like email and password.
      * @param dbSaveUpdatedService  Service for saving or updating user data in the database.
@@ -45,15 +42,15 @@ public class UserRegistrationServiceImpl {
             UtilitiesManager utilitiesManager,
             ValidationUtils validationUtils,
             DbSaveUpdatedService dbSaveUpdatedService,
-            ProfileDetailsController grpcClientController,
-            JwtService jwtService
+            FilterService jwtService,
+            GrpcUserProfileClientImpl grpcUserProfileClient
     ) {
         this.registrationRepo = registrationRepo;
         this.utilitiesManager = utilitiesManager;
         this.validationUtils = validationUtils;
         this.dbSaveUpdatedService = dbSaveUpdatedService;
-        this.grpcClientController = grpcClientController;
         this.jwtService = jwtService;
+        this.grpcUserProfileClient = grpcUserProfileClient;
     }
 
     /**
@@ -97,16 +94,22 @@ public class UserRegistrationServiceImpl {
 
         UsersDatabaseModel profile = saveResult.getUsers();
 
-        String buildToken = jwtService.jwtToken(profile.getUuid().toString(), request.getEmail(),  request.getOrganisation_id().toString());
+        String requestToken = jwtService.jwtToken(profile.getUuid().toString(), profile.getEmail(), request.getOrganisation_id().toString());
 
-        //todo: get the grpc response, if not successful, then call the kafka service.
-        grpcClientController.sendProfileDetailToGrpcProfileMS(
-                new ProfileDetailsModel(
-                        profile.getUuid().toString(),
-                        buildToken,
-                        request.getDetails()
-                )
-        );
+       //todo: get the grpc response, if not successful, then call the kafka service.
+        if(!grpcUserProfileClient.addProfile(
+                requestToken,
+                profile.getUuid().toString(),
+                request.getDetails().getFirst_name(),
+                request.getDetails().getLast_name(),
+                request.getDetails().getPhone_number(),
+                request.getDetails().getDate_of_birth(),
+                request.getDetails().getGender(),
+                request.getDetails().getBio(),
+                request.getOrganisation_id().toString())
+        ) {
+           System.out.println("here is false");
+        }
 
         // Return the response with a 201 status code (CREATED) and user details
         return ResponseEntity.status(HttpStatus.CREATED).body(buildResponse(request, newUser));

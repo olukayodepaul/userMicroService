@@ -125,12 +125,12 @@ public class UserRedisCacheRepo {
 
     //this is being update by the kafka service
     public void saveJWTBlackListedToken(String uuid, String token) {
-            String subKey = "jwt_black_service/"+uuid;
+            String subKey = "jwt_blacklist_service/"+uuid;
             redisTemplate.opsForList().leftPush(subKey, token);
     }
 
     public void isTokenBlacklisted(String uuid, String token) {
-        String subKey = "jwt_black_service/" + uuid;
+        String subKey = "jwt_blacklist_service/" + uuid;
         List<Object> tokens = redisTemplate.opsForList().range(subKey, 0, -1);
 
         // Convert tokens to string list

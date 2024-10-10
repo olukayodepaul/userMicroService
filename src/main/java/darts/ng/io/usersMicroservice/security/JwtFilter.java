@@ -20,7 +20,7 @@ import java.util.Set;
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final FilterService jwtService;
     private final ApplicationContext context;
 
     private static final Set<String> OPEN_ENDPOINTS = new HashSet<>();
@@ -34,7 +34,7 @@ public class JwtFilter extends OncePerRequestFilter {
         OPEN_ENDPOINTS.add("/api/auth/reset-password");
     }
 
-    public JwtFilter(JwtService jwtService, ApplicationContext context) {
+    public JwtFilter(FilterService jwtService, ApplicationContext context) {
         this.jwtService = jwtService;
         this.context = context;
     }
@@ -54,6 +54,7 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String authHeader = request.getHeader("Authorization");
+
         if (authHeader == null || authHeader.isEmpty()) {
             respondUnauthorized(response, MISSING_AUTH_HEADER_ERROR);
             return;
@@ -65,13 +66,15 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         try {
-            String username = jwtService.extractUsername(token);
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = loadUserDetails(username);
+            String email = jwtService.extractUsername(token);
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = loadUserDetails(email);
                 if (validateToken(token, userDetails)) {
+                    System.out.println("sjss "+userDetails.getPassword()+" "+userDetails.getUsername());
                     authenticateUser(userDetails, request);
                 }
             }
+            System.out.println("sjss "+"sk");
             filterChain.doFilter(request, response);
         } catch (RuntimeException e) {
             respondUnauthorized(response, e.getMessage());
@@ -89,8 +92,8 @@ public class JwtFilter extends OncePerRequestFilter {
         return authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
     }
 
-    private UserDetails loadUserDetails(String username) {
-        return context.getBean(CustomUserDetailsService.class).loadUserByUsername(username);
+    private UserDetails loadUserDetails(String email) {
+        return context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
     }
 
     private boolean validateToken(String token, UserDetails userDetails) {

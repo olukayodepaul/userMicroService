@@ -1,0 +1,32 @@
+brew install protobuf
+protoc -I=. --java_out=./src/main/java --grpc-java_out=./src/main/java profile.proto
+
+-Step
+Install:
+brew install protobuf
+brew install grpc
+
+check version:
+protoc --version
+
+run at ur java directory:
+protoc -I=. --java_out=./src/main/java --grpc-java_out=./src/main/java profile.proto
+
+//also build the grpc with maven using the pom file configuration
+//using maven to build the proto is the best..
+mvn clean install
+
+
+your-spring-boot-project/
+├── src/
+│   └── main/
+│       └── java/
+│           ├── proto/
+│           │   ├── client/
+│           │   │   └── user_profile.proto
+│           │   └── server/
+│           │       └── user_profile.proto
+│           └── com/
+│               └── example/
+│                   └── YourApplication.java
+├── pom.xml //load the pom.xml mvn clean install
