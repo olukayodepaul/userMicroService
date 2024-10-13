@@ -22,9 +22,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
-public class WhitelistServiceImpl {
+public class WhitelistService {
 
-    private static final Logger logger = LoggerFactory.getLogger(WhitelistServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(WhitelistService.class);
     private final UserDatabaseRepo userDatabaseRepo;
     private final UserRedisCacheRepo cacheService;
     private final MessageBrokerManager messageBrokerManager;
@@ -34,7 +34,7 @@ public class WhitelistServiceImpl {
     private final DbSaveUpdatedService dbSaveUpdatedService;
     private final UserBlackListedRepo userBlackListedRepo;
 
-    public WhitelistServiceImpl(
+    public WhitelistService(
             UserDatabaseRepo userDatabaseRepo,
             UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,

@@ -22,16 +22,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-public class GetBlacklistEntryServiceImpl {
+public class GetBlacklistEntryService {
 
-    private static final Logger logger = LoggerFactory.getLogger(GetBlacklistEntryServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(GetBlacklistEntryService.class);
     private final UserBlackListedRepo userBlackListedRepo;
     private final UserDatabaseRepo userDatabaseRepo;
     private final FilterService jwtService;
     private final ValidationUtils validationUtils;
     private final UserRedisCacheRepo cacheService;
 
-    public GetBlacklistEntryServiceImpl(
+    public GetBlacklistEntryService(
             UserBlackListedRepo userBlackListedRepo,
             FilterService jwtService,
             ValidationUtils validationUtils,

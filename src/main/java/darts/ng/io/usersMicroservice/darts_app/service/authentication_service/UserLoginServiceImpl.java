@@ -62,6 +62,10 @@ public class UserLoginServiceImpl {
             validationUtils.blackListExpiration(utilitiesManager.convertStringToDateTime(existingUserInCache.getBlacklist_expire_at()));
             validationUtils.validatePassword(request.getPassword(),existingUserInCache.getPassword());
 
+            System.out.println(
+                    "cache "+existingUserInCache.getUuid().toString()+" "+existingUserInCache.getEmail()+" "+existingUserInCache.getOrganisation_id().toString()
+            );
+
             String requestToken = jwtService.jwtToken(existingUserInCache.getUuid().toString(), existingUserInCache.getEmail(), existingUserInCache.getOrganisation_id().toString());
             return ResponseEntity.status(HttpStatus.OK).body(buildResponse(
                     existingUserInCache.getEmail(),
@@ -73,6 +77,8 @@ public class UserLoginServiceImpl {
                     utilitiesManager.convertStringToDateTime(existingUserInCache.getCreated_at()),
                     requestToken
             ));
+
+
         }
         // If not in cache, fetch from database
         else {
@@ -89,6 +95,10 @@ public class UserLoginServiceImpl {
             validationUtils.validatePassword(request.getPassword(),findUser.getPassword());
 
             String requestToken = jwtService.jwtToken(findUser.getUuid().toString(), findUser.getEmail(), findUser.getOrganisation_id().toString());
+
+            System.out.println(
+                    "db "+findUser.getUuid().toString()+" "+findUser.getEmail()+" "+findUser.getOrganisation_id().toString()
+            );
 
             // Save user data to cache
             Boolean saveIntoRedisCache = cacheService.saveUpdateUserDetails(cacheRecord(findUser));

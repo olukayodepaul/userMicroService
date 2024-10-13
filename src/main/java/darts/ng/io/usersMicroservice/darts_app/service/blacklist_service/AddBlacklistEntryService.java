@@ -24,10 +24,10 @@ import java.util.UUID;
 
 
 @Service
-public class AddBlacklistEntryServiceImpl {
+public class AddBlacklistEntryService {
 
 
-    private static final Logger logger = LoggerFactory.getLogger(AddBlacklistEntryServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(AddBlacklistEntryService.class);
     private final UserDatabaseRepo userDatabaseRepo;
     private final UtilitiesManager utilitiesManager;
     private final FilterService jwtService;
@@ -38,7 +38,7 @@ public class AddBlacklistEntryServiceImpl {
     private final MessageBrokerManager messageBrokerManager;
 
 
-    public AddBlacklistEntryServiceImpl(
+    public AddBlacklistEntryService(
             UserDatabaseRepo userDatabaseRepo,
             UserRedisCacheRepo cacheService,
             MessageBrokerManager messageBrokerManager,

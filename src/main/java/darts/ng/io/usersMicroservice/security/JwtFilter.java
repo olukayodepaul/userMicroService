@@ -29,7 +29,7 @@ public class JwtFilter extends OncePerRequestFilter {
         OPEN_ENDPOINTS.add("/api/account/register");
         OPEN_ENDPOINTS.add("/api/account/send-confirmation-email");
         OPEN_ENDPOINTS.add("/api/account/confirm-email");
-        OPEN_ENDPOINTS.add("/api/auth/login");
+//        OPEN_ENDPOINTS.add("/api/auth/login");
         OPEN_ENDPOINTS.add("/api/auth/request-password-reset");
         OPEN_ENDPOINTS.add("/api/auth/reset-password");
     }
@@ -70,7 +70,6 @@ public class JwtFilter extends OncePerRequestFilter {
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = loadUserDetails(email);
                 if (validateToken(token, userDetails)) {
-                    System.out.println("sjss "+userDetails.getPassword()+" "+userDetails.getUsername());
                     authenticateUser(userDetails, request);
                 }
             }

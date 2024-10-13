@@ -33,7 +33,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             UsersDatabaseModel result = loginModel.get();
             return new User(
                     result.getEmail(),
-                    encoder.encode(result.getPassword()),
+                    encoder.encode(result.getUuid().toString()),
                     Collections.emptyList()
             );
         }

@@ -32,7 +32,7 @@ public class SecurityConfig {
                                 "/api/account/register",
                                 "/api/account/send-confirmation-email",
                                 "/api/account/confirm-email",
-                                "/api/auth/login",
+//                                "/api/auth/login",
                                 "/api/auth/request-password-reset",
                                 "/api/auth/reset-password"
                         )
